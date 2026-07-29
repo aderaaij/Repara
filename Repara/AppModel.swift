@@ -20,6 +20,10 @@ final class AppModel {
     let location = LocationProvider()
     let auth: Auth
     let submitter: Submitter
+    /// Read-only browsing of what has already been reported. Held here for its
+    /// lifetime — leaving the screen and coming back must not re-buy the answer —
+    /// but it is nothing to do with the report being built below.
+    let browse: NearbyBrowser
     private let drafter = Drafter()
 
     init() {
@@ -27,6 +31,7 @@ final class AppModel {
         self.client = client
         self.auth = Auth(client: client)
         self.submitter = Submitter(client: client)
+        self.browse = NearbyBrowser(client: client)
     }
 
     // MARK: Flow
@@ -139,6 +144,9 @@ final class AppModel {
         // it open would sit a Settings form on top of the sign-up gate — and
         // leaving the flag set would spring it open again on the next sign-in.
         showingSettings = false
+        // Someone else's neighbourhood should not still be in memory behind the
+        // welcome screen.
+        browse.reset()
         startOver()
     }
 

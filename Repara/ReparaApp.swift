@@ -52,8 +52,8 @@ struct RootView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
-                    NavigationLink { StatusView() } label: {
-                        Label("My reports", systemImage: "list.bullet")
+                    NavigationLink { ReportsView() } label: {
+                        Label("Reports", systemImage: "list.bullet")
                     }
                 }
                 ToolbarItem(placement: .topBarTrailing) {

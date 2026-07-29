@@ -31,6 +31,15 @@ public struct ResolvedLocation: Sendable {
 
 public enum Geo {
 
+    /// How far out `nearBy` reaches, near enough.
+    ///
+    /// The portal documents nothing; this is measured off a captured response,
+    /// where 89 entries ran from 3 m to 99 m from the query point. It exists so
+    /// the browse screen can say what area it just covered — **never to filter
+    /// with.** The server's real radius is its own business and may not be a
+    /// circle at all.
+    public static let nearByRadiusMetres = 100.0
+
     /// `GET /ocorrencias/getGeoAttributes/` — resolves a point to the municipal
     /// attributes a submission needs, with the nearby reports already stripped
     /// of reporter identity.
@@ -44,6 +53,38 @@ public enum Geo {
             from: "/ocorrencias/getGeoAttributes/",
             query: ["x": String(point.x), "y": String(point.y), "ocoTipo": String(tipoId)]
         )
+    }
+
+    /// What the portal already has of one type around a point — the browse call.
+    ///
+    /// The same request `resolve` makes, without the submission built from it.
+    /// Two differences carry the whole browse screen:
+    ///
+    /// - **No address is needed.** `resolve` throws when a point has no
+    ///   `morada`; looking at what has been reported in a park or along a river
+    ///   bank should still answer.
+    /// - **One type per call.** A captured answer for `ocoTipo=262` returned 89
+    ///   entries and every one of them was type 262, so the server filters by
+    ///   the type asked for. There is no "everything reported here" request:
+    ///   that would be 127 of these, at a municipal service, per look.
+    ///
+    /// Costs the portal exactly one request, and files nothing — browsing is
+    /// the one thing in this app that cannot dispatch anybody. Reporter identity
+    /// is dropped on the way in by `NearByOccurrence`, as everywhere else; see
+    /// `PrivacyTests`.
+    public static func nearBy(
+        _ client: PortalClient,
+        around coordinate: LatLng,
+        tipoId: Int
+    ) async throws -> [NearByOccurrence] {
+        // Distances and map pins are only as honest as the projection, and a
+        // 114 m drift is exactly the failure this app exists to avoid.
+        try Projection.verify()
+
+        let point = Projection.forward(coordinate)
+        return try await attributes(client, at: point, tipoId: tipoId)
+            .nearBy
+            .stripped(relativeTo: point)
     }
 
     /// Turn a raw coordinate into the full `geo` block of a submission.
