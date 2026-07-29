@@ -171,9 +171,7 @@ overridable free text — they go stale faster than this app ships.
   cheaper models and efforts are worth measuring.
 - **Structured output** constrains `tipo_id` to an `enum` of the 127 bundled
   ids, so an invalid type is structurally impossible rather than merely
-  unlikely — except on Gemini, whose schema dialect only honours `enum` on
-  strings. The id is resolved against the bundled taxonomy either way, which is
-  what makes that survivable.
+  unlikely — on two of the three providers. See below.
 - **Refusals are handled before reading content** — a refused reply has no
   content to index, whatever shape the provider signals it in. On Claude,
   server-side `fallbacks` is enabled so a spurious refusal re-runs rather than
@@ -187,6 +185,27 @@ overridable free text — they go stale faster than this app ships.
 
 A failed draft is not a dead end: Review still works, it just starts blank.
 Someone in the street should never be blocked by the model.
+
+### Gemini does not enforce the type list — two checks do
+
+Anthropic and OpenAI both take real JSON Schema, so `tipo_id` is constrained to
+an `enum` of the 127 bundled ids and an invalid type cannot come back. Gemini's
+`responseSchema` is an OpenAPI 3.0 subset instead: it rejects
+`additionalProperties` outright and only honours `enum` on strings, so the
+integer enum is dropped on the way out (`GeminiProvider.sanitized`). On that
+provider nothing structural stops the model naming a type that does not exist.
+
+Two checks are what make that safe, and **neither may be deleted on the grounds
+that the schema covers it** — on one of the three it does not:
+
+- `Drafter.parse` resolves `tipo_id` against the bundled taxonomy and throws
+  `unknownType` rather than trusting it. The failure it prevents is a report
+  filed against the wrong council department.
+- `judgeDuplicates` filters the returned positions against the list it actually
+  sent, so an out-of-range answer is dropped rather than indexed into.
+
+The full type list is in the prompt on every provider, so this is a backstop,
+not the primary mechanism. It is still the only mechanism on Gemini.
 
 ---
 
