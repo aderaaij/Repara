@@ -1,0 +1,24 @@
+{
+  "_note": "SYNTHETIC VALUES, REAL STRUCTURE, copied from api-reference.json in the TypeScript repo. This is what the portal answered 201 to, with every identifying value replaced. The quirks are as captured and must be preserved: cod_sig and id_tipo are sent EMPTY while the real values ride in cod_sig_original / idtipo_original; and n_pol is the house number split off the end of morada INCLUDING its leading space, with morada left whole. The coordinates are Praca do Comercio, a public square, so this fixture identifies nobody.",
+  "tipo_ocorrencia_id": 262,
+  "descricao": "Sacos de lixo abandonados no passeio.",
+  "referencia": "",
+  "geo": {
+    "freguesia_id": 121,
+    "pfm": "-1",
+    "uit": "59",
+    "estruturante": "-1",
+    "cod_sig": "",
+    "id_tipo": "",
+    "morada": "Rua Exemplo, 210",
+    "n_pol": " 210",
+    "lon": -9.1364,
+    "lat": 38.70757,
+    "X": -87269.1457760187,
+    "Y": -106176.89242727536,
+    "freguesia_nome": "Freguesia Exemplo",
+    "cod_sig_original": "1000000000000",
+    "idtipo_original": "2",
+    "cod_local": "00000"
+  }
+}

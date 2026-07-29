@@ -1,0 +1,114 @@
+{
+  "note": "Generated from the TypeScript client via proj4 (EPSG:4326 -> EPSG:3763). Public landmarks only. The Swift port must reproduce x/y for every row.",
+  "source": "proj4 ^2.19.10, +proj=tmerc +lat_0=39.6682583333333 +lon_0=-8.13310833333333 +k=1 +x_0=0 +y_0=0 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs",
+  "points": [
+    {
+      "name": "Praça do Comércio (the reference point)",
+      "lat": 38.70757,
+      "lng": -9.1364,
+      "x": -87269.1457760187,
+      "y": -106176.89242727536,
+      "backLat": 38.70757,
+      "backLng": -9.1364
+    },
+    {
+      "name": "Torre de Belém",
+      "lat": 38.6916,
+      "lng": -9.2159,
+      "x": -94205.40612860081,
+      "y": -107871.05460386386,
+      "backLat": 38.69160000000001,
+      "backLng": -9.2159
+    },
+    {
+      "name": "Parque das Nações (Oriente)",
+      "lat": 38.7679,
+      "lng": -9.0994,
+      "x": -83980.0250435417,
+      "y": -99514.01748659558,
+      "backLat": 38.7679,
+      "backLng": -9.0994
+    },
+    {
+      "name": "Marquês de Pombal",
+      "lat": 38.7253,
+      "lng": -9.15,
+      "x": -88430.28755775187,
+      "y": -104195.57231454755,
+      "backLat": 38.72529999999999,
+      "backLng": -9.15
+    },
+    {
+      "name": "Aeroporto Humberto Delgado",
+      "lat": 38.7742,
+      "lng": -9.1342,
+      "x": -86996.89213167725,
+      "y": -98782.1059962032,
+      "backLat": 38.7742,
+      "backLng": -9.134199999999998
+    },
+    {
+      "name": "Castelo de São Jorge",
+      "lat": 38.7139,
+      "lng": -9.1335,
+      "x": -87009.21591223896,
+      "y": -105476.93430519871,
+      "backLat": 38.71390000000001,
+      "backLng": -9.133499999999998
+    },
+    {
+      "name": "Mosteiro dos Jerónimos",
+      "lat": 38.6979,
+      "lng": -9.2065,
+      "x": -93379.3706701807,
+      "y": -107181.28771289758,
+      "backLat": 38.6979,
+      "backLng": -9.206500000000005
+    },
+    {
+      "name": "Bounds NW corner",
+      "lat": 38.8,
+      "lng": -9.25,
+      "x": -97025.42995831637,
+      "y": -95801.39464573629,
+      "backLat": 38.800000000000004,
+      "backLng": -9.25
+    },
+    {
+      "name": "Bounds SE corner",
+      "lat": 38.68,
+      "lng": -9.08,
+      "x": -82394.83706399311,
+      "y": -109289.73702092124,
+      "backLat": 38.68,
+      "backLng": -9.079999999999995
+    },
+    {
+      "name": "On the central meridian, Lisbon latitude",
+      "lat": 38.7,
+      "lng": -8.13310833333333,
+      "x": 0,
+      "y": -107495.0744810562,
+      "backLat": 38.7,
+      "backLng": -8.13310833333333
+    },
+    {
+      "name": "At the latitude of origin",
+      "lat": 39.6682583333333,
+      "lng": -9,
+      "x": -74384.7417148224,
+      "y": 359.2256695216239,
+      "backLat": 39.668258333333306,
+      "backLng": -8.999999999999995
+    },
+    {
+      "name": "Origin of the projection",
+      "lat": 39.6682583333333,
+      "lng": -8.13310833333333,
+      "x": 0,
+      "y": 0,
+      "backLat": 39.6682583333333,
+      "backLng": -8.13310833333333
+    }
+  ]
+}

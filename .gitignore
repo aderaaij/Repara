@@ -1,0 +1,33 @@
+# Swift / SPM
+.build/
+.swiftpm/
+Package.resolved
+
+# Xcode
+build/
+DerivedData/
+*.xcuserstate
+xcuserdata/
+*.xcscmblueprint
+*.xccheckout
+
+# macOS
+.DS_Store
+
+# Local tool settings. Machine-specific, and carries absolute paths to whatever
+# else happens to be checked out next to this repo.
+.claude/settings.local.json
+
+# Secrets. The portal credentials and the Claude API key live in the Keychain,
+# never in the bundle, a plist, or source — but a stray .env would defeat that.
+.env
+*.p12
+*.mobileprovision
+
+# Photos carry GPS EXIF and often show someone's home or number plate. They do
+# not belong in this repository, ever.
+*.jpg
+*.jpeg
+*.heic
+*.HEIC
+!ReparaCore/Tests/**/Fixtures/*.jpg

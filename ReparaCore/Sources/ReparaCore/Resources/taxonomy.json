@@ -1,0 +1,1145 @@
+[
+  {
+    "id": 476,
+    "area_ocorrencia_id": 30,
+    "area": "Animais em ambiente urbano",
+    "descricao": "Recolha de animais de pequeno e médio porte mortos ou acidentados, na via pública",
+    "slug": "recolha-de-animais-de-pequeno-e-medio-porte-mortos-ou-acidentados-na-via-publica",
+    "en": "Collection of small and medium-sized animals, dead or injured, on the public highway",
+    "areaEn": "Animals in the urban environment"
+  },
+  {
+    "id": 479,
+    "area_ocorrencia_id": 30,
+    "area": "Animais em ambiente urbano",
+    "descricao": "Recolha de animais de pequeno e médio porte mortos ou doentes em propriedade privada",
+    "slug": "recolha-de-animais-de-pequeno-e-medio-porte-mortos-ou-doentes-em-propriedade-privada",
+    "en": "Collection of small and medium-sized animals, dead or sick, on private property",
+    "areaEn": "Animals in the urban environment"
+  },
+  {
+    "id": 463,
+    "area_ocorrencia_id": 30,
+    "area": "Animais em ambiente urbano",
+    "descricao": "Recolha de animais de pequeno e médio porte vivos na via pública",
+    "slug": "recolha-de-animais-de-pequeno-e-medio-porte-vivos-na-via-publica",
+    "en": "Collection of live small and medium-sized animals on the public highway",
+    "areaEn": "Animals in the urban environment"
+  },
+  {
+    "id": 1282,
+    "area_ocorrencia_id": 14,
+    "area": "Árvores e Espaços Verdes",
+    "descricao": "Árvores – Plantação",
+    "slug": "arvores-plantacao",
+    "en": "Trees – Planting",
+    "areaEn": "Trees and Green Spaces"
+  },
+  {
+    "id": 30,
+    "area_ocorrencia_id": 14,
+    "area": "Árvores e Espaços Verdes",
+    "descricao": "Árvores, arbustos ou relva - Manutenção",
+    "slug": "arvores-arbustos-ou-relva-manutencao",
+    "en": "Trees, shrubs or grass – Maintenance",
+    "areaEn": "Trees and Green Spaces"
+  },
+  {
+    "id": 543,
+    "area_ocorrencia_id": 14,
+    "area": "Árvores e Espaços Verdes",
+    "descricao": "Bebedouros, Chafariz, Fontanário ou Lago - Manutenção",
+    "slug": "bebedouros-chafariz-fontanario-ou-lago-manutencao",
+    "en": "Drinking fountains, ornamental fountains or ponds – Maintenance",
+    "areaEn": "Trees and Green Spaces"
+  },
+  {
+    "id": 26,
+    "area_ocorrencia_id": 14,
+    "area": "Árvores e Espaços Verdes",
+    "descricao": "Cercas, vedações e outras estruturas - Manutenção",
+    "slug": "cercas-vedacoes-e-outras-estruturas-manutencao",
+    "en": "Fences, enclosures and other structures – Maintenance",
+    "areaEn": "Trees and Green Spaces"
+  },
+  {
+    "id": 864,
+    "area_ocorrencia_id": 14,
+    "area": "Árvores e Espaços Verdes",
+    "descricao": "Colocação de novo mobiliário urbano",
+    "slug": "colocacao-de-novo-mobiliario-urbano",
+    "en": "Installation of new street furniture",
+    "areaEn": "Trees and Green Spaces"
+  },
+  {
+    "id": 907,
+    "area_ocorrencia_id": 14,
+    "area": "Árvores e Espaços Verdes",
+    "descricao": "Hortas urbanas - Manutenção",
+    "slug": "hortas-urbanas-manutencao",
+    "en": "Urban allotments – Maintenance",
+    "areaEn": "Trees and Green Spaces"
+  },
+  {
+    "id": 484,
+    "area_ocorrencia_id": 14,
+    "area": "Árvores e Espaços Verdes",
+    "descricao": "Mesas, bancos ou outro mobiliário urbano - Manutenção",
+    "slug": "mesas-bancos-ou-outro-mobiliario-urbano-manutencao",
+    "en": "Tables, benches or other street furniture – Maintenance",
+    "areaEn": "Trees and Green Spaces"
+  },
+  {
+    "id": 120,
+    "area_ocorrencia_id": 14,
+    "area": "Árvores e Espaços Verdes",
+    "descricao": "Parques Infantis e Juvenis - Manutenção",
+    "slug": "parques-infantis-e-juvenis-manutencao",
+    "en": "Children's and youth playgrounds – Maintenance",
+    "areaEn": "Trees and Green Spaces"
+  },
+  {
+    "id": 35,
+    "area_ocorrencia_id": 14,
+    "area": "Árvores e Espaços Verdes",
+    "descricao": "Rede de rega - Manutenção",
+    "slug": "rede-de-rega-manutencao",
+    "en": "Irrigation system – Maintenance",
+    "areaEn": "Trees and Green Spaces"
+  },
+  {
+    "id": 1235,
+    "area_ocorrencia_id": 34,
+    "area": "Equipamentos Municipais - Cultura",
+    "descricao": "Escultura - Manutenção",
+    "slug": "escultura-manutencao",
+    "en": "Sculpture – Maintenance",
+    "areaEn": "Municipal Facilities – Culture"
+  },
+  {
+    "id": 111,
+    "area_ocorrencia_id": 15,
+    "area": "Equipamentos Municipais - Desporto",
+    "descricao": "Manutenção e/ou reparação",
+    "slug": "manutencao-e-ou-reparacao",
+    "en": "Maintenance and/or repair (sports facilities)",
+    "areaEn": "Municipal Facilities – Sport"
+  },
+  {
+    "id": 521,
+    "area_ocorrencia_id": 35,
+    "area": "Equipamentos Municipais - Educação",
+    "descricao": "Manutenção e/ou reparação",
+    "slug": "manutencao-e-ou-reparacao--equipamentos-municipais-educacao",
+    "en": "Maintenance and/or repair (school buildings)",
+    "areaEn": "Municipal Facilities – Education"
+  },
+  {
+    "id": 1010,
+    "area_ocorrencia_id": 12,
+    "area": "Estradas e Ciclovias",
+    "descricao": "Abatimentos superficiais",
+    "slug": "abatimentos-superficiais",
+    "en": "Surface subsidence (road)",
+    "areaEn": "Roads and Cycle Lanes"
+  },
+  {
+    "id": 36,
+    "area_ocorrencia_id": 12,
+    "area": "Estradas e Ciclovias",
+    "descricao": "Buraco na faixa de rodagem - Betuminoso",
+    "slug": "buraco-na-faixa-de-rodagem-betuminoso",
+    "en": "Pothole in the carriageway – Asphalt",
+    "areaEn": "Roads and Cycle Lanes"
+  },
+  {
+    "id": 660,
+    "area_ocorrencia_id": 12,
+    "area": "Estradas e Ciclovias",
+    "descricao": "Buraco na faixa de rodagem - Cubos",
+    "slug": "buraco-na-faixa-de-rodagem-cubos",
+    "en": "Pothole in the carriageway – Stone setts",
+    "areaEn": "Roads and Cycle Lanes"
+  },
+  {
+    "id": 1244,
+    "area_ocorrencia_id": 12,
+    "area": "Estradas e Ciclovias",
+    "descricao": "Ciclovia - Manutenção",
+    "slug": "ciclovia-manutencao",
+    "en": "Cycle lane – Maintenance",
+    "areaEn": "Roads and Cycle Lanes"
+  },
+  {
+    "id": 1241,
+    "area_ocorrencia_id": 12,
+    "area": "Estradas e Ciclovias",
+    "descricao": "Ciclovias- Nova",
+    "slug": "ciclovias-nova",
+    "en": "Cycle lanes – New",
+    "areaEn": "Roads and Cycle Lanes"
+  },
+  {
+    "id": 531,
+    "area_ocorrencia_id": 12,
+    "area": "Estradas e Ciclovias",
+    "descricao": "Concessionárias - Danos e obras",
+    "slug": "concessionarias-danos-e-obras",
+    "en": "Utility companies – Damage and works",
+    "areaEn": "Roads and Cycle Lanes"
+  },
+  {
+    "id": 595,
+    "area_ocorrencia_id": 12,
+    "area": "Estradas e Ciclovias",
+    "descricao": "Dispositivos de segurança (balizadores, lombas e bandas sonoras) - Manutenção",
+    "slug": "dispositivos-de-seguranca-balizadores-lombas-e-bandas-sonoras-manutencao",
+    "en": "Safety devices (bollard markers, speed humps and rumble strips) – Maintenance",
+    "areaEn": "Roads and Cycle Lanes"
+  },
+  {
+    "id": 1042,
+    "area_ocorrencia_id": 12,
+    "area": "Estradas e Ciclovias",
+    "descricao": "Dispositivos de segurança (balizadores, lombas e bandas sonoras) - Novo",
+    "slug": "dispositivos-de-seguranca-balizadores-lombas-e-bandas-sonoras-novo",
+    "en": "Safety devices (bollard markers, speed humps and rumble strips) – New",
+    "areaEn": "Roads and Cycle Lanes"
+  },
+  {
+    "id": 1254,
+    "area_ocorrencia_id": 12,
+    "area": "Estradas e Ciclovias",
+    "descricao": "Estacionamento de motas - Novo, remoção e reposicionamento",
+    "slug": "estacionamento-de-motas-novo-remocao-e-reposicionamento",
+    "en": "Motorcycle parking – New, removal and repositioning",
+    "areaEn": "Roads and Cycle Lanes"
+  },
+  {
+    "id": 1279,
+    "area_ocorrencia_id": 12,
+    "area": "Estradas e Ciclovias",
+    "descricao": "Estacionamento de velocípedes - Manutenção",
+    "slug": "estacionamento-de-velocipedes-manutencao",
+    "en": "Bicycle parking – Maintenance",
+    "areaEn": "Roads and Cycle Lanes"
+  },
+  {
+    "id": 1252,
+    "area_ocorrencia_id": 12,
+    "area": "Estradas e Ciclovias",
+    "descricao": "Estacionamento de velocípedes - Novo ou remoção",
+    "slug": "estacionamento-de-velocipedes-novo-ou-remocao",
+    "en": "Bicycle parking – New or removal",
+    "areaEn": "Roads and Cycle Lanes"
+  },
+  {
+    "id": 155,
+    "area_ocorrencia_id": 12,
+    "area": "Estradas e Ciclovias",
+    "descricao": "Semáforos - Manutenção",
+    "slug": "semaforos-manutencao",
+    "en": "Traffic lights – Maintenance",
+    "areaEn": "Roads and Cycle Lanes"
+  },
+  {
+    "id": 1280,
+    "area_ocorrencia_id": 12,
+    "area": "Estradas e Ciclovias",
+    "descricao": "Semáforos - Novo",
+    "slug": "semaforos-novo",
+    "en": "Traffic lights – New",
+    "areaEn": "Roads and Cycle Lanes"
+  },
+  {
+    "id": 1289,
+    "area_ocorrencia_id": 12,
+    "area": "Estradas e Ciclovias",
+    "descricao": "Separadores de faixa de rodagem - Manutenção",
+    "slug": "separadores-de-faixa-de-rodagem-manutencao",
+    "en": "Carriageway dividers and central reservations – Maintenance",
+    "areaEn": "Roads and Cycle Lanes"
+  },
+  {
+    "id": 158,
+    "area_ocorrencia_id": 12,
+    "area": "Estradas e Ciclovias",
+    "descricao": "Sinalização horizontal e passadeiras - Manutenção",
+    "slug": "sinalizacao-horizontal-e-passadeiras-manutencao",
+    "en": "Road markings and pedestrian crossings – Maintenance",
+    "areaEn": "Roads and Cycle Lanes"
+  },
+  {
+    "id": 593,
+    "area_ocorrencia_id": 12,
+    "area": "Estradas e Ciclovias",
+    "descricao": "Sinalização horizontal e passadeiras - Novo, remoção e reposicionamento",
+    "slug": "sinalizacao-horizontal-e-passadeiras-novo-remocao-e-reposicionamento",
+    "en": "Road markings and pedestrian crossings – New, removal and repositioning",
+    "areaEn": "Roads and Cycle Lanes"
+  },
+  {
+    "id": 959,
+    "area_ocorrencia_id": 12,
+    "area": "Estradas e Ciclovias",
+    "descricao": "Sinalização vertical incluindo informativa - Manutenção",
+    "slug": "sinalizacao-vertical-incluindo-informativa-manutencao",
+    "en": "Road signs including information signs – Maintenance",
+    "areaEn": "Roads and Cycle Lanes"
+  },
+  {
+    "id": 594,
+    "area_ocorrencia_id": 12,
+    "area": "Estradas e Ciclovias",
+    "descricao": "Sinalização vertical incluindo informativa - Novo, remoção e reposicionamento",
+    "slug": "sinalizacao-vertical-incluindo-informativa-novo-remocao-e-reposicionamento",
+    "en": "Road signs including information signs – New, removal and repositioning",
+    "areaEn": "Roads and Cycle Lanes"
+  },
+  {
+    "id": 592,
+    "area_ocorrencia_id": 12,
+    "area": "Estradas e Ciclovias",
+    "descricao": "Viadutos, passagens superiores e inferiores - Manutenção",
+    "slug": "viadutos-passagens-superiores-e-inferiores-manutencao",
+    "en": "Viaducts, overpasses and underpasses – Maintenance",
+    "areaEn": "Roads and Cycle Lanes"
+  },
+  {
+    "id": 206,
+    "area_ocorrencia_id": 28,
+    "area": "Habitação Municipal",
+    "descricao": "Emparedamento ou entaipamento",
+    "slug": "emparedamento-ou-entaipamento",
+    "en": "Walling up or boarding up a vacant property",
+    "areaEn": "Municipal Housing"
+  },
+  {
+    "id": 223,
+    "area_ocorrencia_id": 28,
+    "area": "Habitação Municipal",
+    "descricao": "Gebalis - Manutenção ou reparação",
+    "slug": "gebalis-manutencao-ou-reparacao",
+    "en": "Gebalis (municipal housing manager) – Maintenance or repair",
+    "areaEn": "Municipal Housing"
+  },
+  {
+    "id": 196,
+    "area_ocorrencia_id": 28,
+    "area": "Habitação Municipal",
+    "descricao": "Infiltração",
+    "slug": "infiltracao",
+    "en": "Water ingress / damp penetration",
+    "areaEn": "Municipal Housing"
+  },
+  {
+    "id": 205,
+    "area_ocorrencia_id": 28,
+    "area": "Habitação Municipal",
+    "descricao": "Manutenção ou reparação ",
+    "slug": "manutencao-ou-reparacao",
+    "en": "Maintenance or repair",
+    "areaEn": "Municipal Housing"
+  },
+  {
+    "id": 211,
+    "area_ocorrencia_id": 28,
+    "area": "Habitação Municipal",
+    "descricao": "Reparação de instalação elétrica na zona de serviços comuns",
+    "slug": "reparacao-de-instalacao-eletrica-na-zona-de-servicos-comuns",
+    "en": "Electrical repairs in communal areas",
+    "areaEn": "Municipal Housing"
+  },
+  {
+    "id": 1347,
+    "area_ocorrencia_id": 28,
+    "area": "Habitação Municipal",
+    "descricao": "Reparação de torneiras e/ou canalizações",
+    "slug": "reparacao-de-torneiras-e-ou-canalizacoes",
+    "en": "Repair of taps and/or plumbing",
+    "areaEn": "Municipal Housing"
+  },
+  {
+    "id": 208,
+    "area_ocorrencia_id": 28,
+    "area": "Habitação Municipal",
+    "descricao": "Reparação ou mudança de fechadura e caixas de correio",
+    "slug": "reparacao-ou-mudanca-de-fechadura-e-caixas-de-correio",
+    "en": "Repair or replacement of locks and letterboxes",
+    "areaEn": "Municipal Housing"
+  },
+  {
+    "id": 204,
+    "area_ocorrencia_id": 28,
+    "area": "Habitação Municipal",
+    "descricao": "Rotura e/ou desentupimento",
+    "slug": "rotura-e-ou-desentupimento",
+    "en": "Burst pipe and/or unblocking",
+    "areaEn": "Municipal Housing"
+  },
+  {
+    "id": 419,
+    "area_ocorrencia_id": 10,
+    "area": "Higiene Urbana",
+    "descricao": "Alteração da periodicidade da recolha de ecoponto ou vidrão",
+    "slug": "alteracao-da-periodicidade-da-recolha-de-ecoponto-ou-vidrao",
+    "en": "Change collection frequency for a recycling point or bottle bank",
+    "areaEn": "Urban Sanitation (waste and street cleaning)"
+  },
+  {
+    "id": 54,
+    "area_ocorrencia_id": 10,
+    "area": "Higiene Urbana",
+    "descricao": "Arranjo de papeleiras",
+    "slug": "arranjo-de-papeleiras",
+    "en": "Litter bin repair",
+    "areaEn": "Urban Sanitation (waste and street cleaning)"
+  },
+  {
+    "id": 447,
+    "area_ocorrencia_id": 10,
+    "area": "Higiene Urbana",
+    "descricao": "Contentor coletivo (4 rodas) fora do local",
+    "slug": "contentor-coletivo-4-rodas-fora-do-local",
+    "en": "Communal bin (4-wheel) out of place",
+    "areaEn": "Urban Sanitation (waste and street cleaning)"
+  },
+  {
+    "id": 446,
+    "area_ocorrencia_id": 10,
+    "area": "Higiene Urbana",
+    "descricao": "Contentor de pequena capacidade (2 rodas) abandonado na via",
+    "slug": "contentor-de-pequena-capacidade-2-rodas-abandonado-na-via",
+    "en": "Small bin (2-wheel) abandoned on the street",
+    "areaEn": "Urban Sanitation (waste and street cleaning)"
+  },
+  {
+    "id": 972,
+    "area_ocorrencia_id": 10,
+    "area": "Higiene Urbana",
+    "descricao": "Contentor de pequena capacidade (2 rodas) desaparecido",
+    "slug": "contentor-de-pequena-capacidade-2-rodas-desaparecido",
+    "en": "Small bin (2-wheel) missing",
+    "areaEn": "Urban Sanitation (waste and street cleaning)"
+  },
+  {
+    "id": 53,
+    "area_ocorrencia_id": 10,
+    "area": "Higiene Urbana",
+    "descricao": "Contentores de resíduos danificados",
+    "slug": "contentores-de-residuos-danificados",
+    "en": "Damaged waste bins",
+    "areaEn": "Urban Sanitation (waste and street cleaning)"
+  },
+  {
+    "id": 452,
+    "area_ocorrencia_id": 10,
+    "area": "Higiene Urbana",
+    "descricao": "Contentores na via pública fora do horário regulamentar",
+    "slug": "contentores-na-via-publica-fora-do-horario-regulamentar",
+    "en": "Bins left on the street outside permitted hours",
+    "areaEn": "Urban Sanitation (waste and street cleaning)"
+  },
+  {
+    "id": 1102,
+    "area_ocorrencia_id": 10,
+    "area": "Higiene Urbana",
+    "descricao": "Corte de ervas em passeios",
+    "slug": "corte-de-ervas-em-passeios",
+    "en": "Weed cutting on pavements",
+    "areaEn": "Urban Sanitation (waste and street cleaning)"
+  },
+  {
+    "id": 460,
+    "area_ocorrencia_id": 10,
+    "area": "Higiene Urbana",
+    "descricao": "Desbaratização na via pública ou coletores",
+    "slug": "desbaratizacao-na-via-publica-ou-coletores",
+    "en": "Cockroach control on the street or in sewers",
+    "areaEn": "Urban Sanitation (waste and street cleaning)"
+  },
+  {
+    "id": 465,
+    "area_ocorrencia_id": 10,
+    "area": "Higiene Urbana",
+    "descricao": "Desratização na via pública ou coletores",
+    "slug": "desratizacao-na-via-publica-ou-coletores",
+    "en": "Rat control on the street or in sewers",
+    "areaEn": "Urban Sanitation (waste and street cleaning)"
+  },
+  {
+    "id": 97,
+    "area_ocorrencia_id": 10,
+    "area": "Higiene Urbana",
+    "descricao": "Entulhos, objetos volumosos, resíduos de jardim ou perigosos abandonados na via pública",
+    "slug": "entulhos-objetos-volumosos-residuos-de-jardim-ou-perigosos-abandonados-na-via-publica",
+    "en": "Rubble, bulky items, garden or hazardous waste dumped on the public highway",
+    "areaEn": "Urban Sanitation (waste and street cleaning)"
+  },
+  {
+    "id": 445,
+    "area_ocorrencia_id": 10,
+    "area": "Higiene Urbana",
+    "descricao": "Falta de despejo do contentor de pequena capacidade (2 rodas) ou sacos (municipais)",
+    "slug": "falta-de-despejo-do-contentor-de-pequena-capacidade-2-rodas-ou-sacos-municipais",
+    "en": "Small bin (2-wheel) or municipal sacks not emptied",
+    "areaEn": "Urban Sanitation (waste and street cleaning)"
+  },
+  {
+    "id": 98,
+    "area_ocorrencia_id": 10,
+    "area": "Higiene Urbana",
+    "descricao": "Grafitis",
+    "slug": "grafitis",
+    "en": "Graffiti",
+    "areaEn": "Urban Sanitation (waste and street cleaning)"
+  },
+  {
+    "id": 99,
+    "area_ocorrencia_id": 10,
+    "area": "Higiene Urbana",
+    "descricao": "Insalubridade em propriedades ou terrenos",
+    "slug": "insalubridade-em-propriedades-ou-terrenos",
+    "en": "Unsanitary conditions on properties or land",
+    "areaEn": "Urban Sanitation (waste and street cleaning)"
+  },
+  {
+    "id": 415,
+    "area_ocorrencia_id": 10,
+    "area": "Higiene Urbana",
+    "descricao": "Lavagem de ecoponto ou vidrão",
+    "slug": "lavagem-de-ecoponto-ou-vidrao",
+    "en": "Washing of a recycling point or bottle bank",
+    "areaEn": "Urban Sanitation (waste and street cleaning)"
+  },
+  {
+    "id": 101,
+    "area_ocorrencia_id": 10,
+    "area": "Higiene Urbana",
+    "descricao": "Limpeza da via pública (Despejo de papeleira, varredura e lavagem da via pública)",
+    "slug": "limpeza-da-via-publica-despejo-de-papeleira-varredura-e-lavagem-da-via-publica",
+    "en": "Street cleaning (emptying litter bins, sweeping and washing the street)",
+    "areaEn": "Urban Sanitation (waste and street cleaning)"
+  },
+  {
+    "id": 104,
+    "area_ocorrencia_id": 10,
+    "area": "Higiene Urbana",
+    "descricao": "Limpeza de dejetos caninos",
+    "slug": "limpeza-de-dejetos-caninos",
+    "en": "Dog fouling clean-up",
+    "areaEn": "Urban Sanitation (waste and street cleaning)"
+  },
+  {
+    "id": 430,
+    "area_ocorrencia_id": 10,
+    "area": "Higiene Urbana",
+    "descricao": "Outras situações de sacos, pilhões, fitas ou papeleiras",
+    "slug": "outras-situacoes-de-sacos-pilhoes-fitas-ou-papeleiras",
+    "en": "Other issues with sacks, battery banks, straps or litter bins",
+    "areaEn": "Urban Sanitation (waste and street cleaning)"
+  },
+  {
+    "id": 266,
+    "area_ocorrencia_id": 10,
+    "area": "Higiene Urbana",
+    "descricao": "Pedido de apoio a evento",
+    "slug": "pedido-de-apoio-a-evento",
+    "en": "Request for event support",
+    "areaEn": "Urban Sanitation (waste and street cleaning)"
+  },
+  {
+    "id": 435,
+    "area_ocorrencia_id": 10,
+    "area": "Higiene Urbana",
+    "descricao": "Pedido de autorização para manter contentor na via pública",
+    "slug": "pedido-de-autorizacao-para-manter-contentor-na-via-publica",
+    "en": "Request permission to keep a bin on the street",
+    "areaEn": "Urban Sanitation (waste and street cleaning)"
+  },
+  {
+    "id": 458,
+    "area_ocorrencia_id": 10,
+    "area": "Higiene Urbana",
+    "descricao": "Pedido de contentor de média capacidade (4 rodas)",
+    "slug": "pedido-de-contentor-de-media-capacidade-4-rodas",
+    "en": "Request a medium bin (4-wheel)",
+    "areaEn": "Urban Sanitation (waste and street cleaning)"
+  },
+  {
+    "id": 459,
+    "area_ocorrencia_id": 10,
+    "area": "Higiene Urbana",
+    "descricao": "Pedido de contentor de pequena capacidade (2 rodas)",
+    "slug": "pedido-de-contentor-de-pequena-capacidade-2-rodas",
+    "en": "Request a small bin (2-wheel)",
+    "areaEn": "Urban Sanitation (waste and street cleaning)"
+  },
+  {
+    "id": 426,
+    "area_ocorrencia_id": 10,
+    "area": "Higiene Urbana",
+    "descricao": "Pedido de despejo de contentor coletivo (4 rodas)",
+    "slug": "pedido-de-despejo-de-contentor-coletivo-4-rodas",
+    "en": "Request emptying of a communal bin (4-wheel)",
+    "areaEn": "Urban Sanitation (waste and street cleaning)"
+  },
+  {
+    "id": 414,
+    "area_ocorrencia_id": 10,
+    "area": "Higiene Urbana",
+    "descricao": "Pedido de despejo de ecoponto ou vidrão",
+    "slug": "pedido-de-despejo-de-ecoponto-ou-vidrao",
+    "en": "Request emptying of a recycling point or bottle bank",
+    "areaEn": "Urban Sanitation (waste and street cleaning)"
+  },
+  {
+    "id": 440,
+    "area_ocorrencia_id": 10,
+    "area": "Higiene Urbana",
+    "descricao": "Pedido de despejo de pilhão",
+    "slug": "pedido-de-despejo-de-pilhao",
+    "en": "Request emptying of a battery collection bank",
+    "areaEn": "Urban Sanitation (waste and street cleaning)"
+  },
+  {
+    "id": 416,
+    "area_ocorrencia_id": 10,
+    "area": "Higiene Urbana",
+    "descricao": "Pedido de Instalação de ecoponto ou vidrão",
+    "slug": "pedido-de-instalacao-de-ecoponto-ou-vidrao",
+    "en": "Request installation of a recycling point or bottle bank",
+    "areaEn": "Urban Sanitation (waste and street cleaning)"
+  },
+  {
+    "id": 433,
+    "area_ocorrencia_id": 10,
+    "area": "Higiene Urbana",
+    "descricao": "Pedido de integração em recolha seletiva",
+    "slug": "pedido-de-integracao-em-recolha-seletiva",
+    "en": "Request to join separated recycling collection",
+    "areaEn": "Urban Sanitation (waste and street cleaning)"
+  },
+  {
+    "id": 422,
+    "area_ocorrencia_id": 10,
+    "area": "Higiene Urbana",
+    "descricao": "Pedido de integração na remoção de resíduos orgânicos",
+    "slug": "pedido-de-integracao-na-remocao-de-residuos-organicos",
+    "en": "Request to join organic waste collection",
+    "areaEn": "Urban Sanitation (waste and street cleaning)"
+  },
+  {
+    "id": 427,
+    "area_ocorrencia_id": 10,
+    "area": "Higiene Urbana",
+    "descricao": "Pedido de lavagem de contentor coletivo",
+    "slug": "pedido-de-lavagem-de-contentor-coletivo",
+    "en": "Request washing of a communal bin",
+    "areaEn": "Urban Sanitation (waste and street cleaning)"
+  },
+  {
+    "id": 424,
+    "area_ocorrencia_id": 10,
+    "area": "Higiene Urbana",
+    "descricao": "Pedido de lavagem de contentor para resíduos orgânicos",
+    "slug": "pedido-de-lavagem-de-contentor-para-residuos-organicos",
+    "en": "Request washing of an organic waste bin",
+    "areaEn": "Urban Sanitation (waste and street cleaning)"
+  },
+  {
+    "id": 429,
+    "area_ocorrencia_id": 10,
+    "area": "Higiene Urbana",
+    "descricao": "Pedido de papeleira",
+    "slug": "pedido-de-papeleira",
+    "en": "Request a litter bin",
+    "areaEn": "Urban Sanitation (waste and street cleaning)"
+  },
+  {
+    "id": 438,
+    "area_ocorrencia_id": 10,
+    "area": "Higiene Urbana",
+    "descricao": "Pedido de pilhão",
+    "slug": "pedido-de-pilhao",
+    "en": "Request a battery collection bank",
+    "areaEn": "Urban Sanitation (waste and street cleaning)"
+  },
+  {
+    "id": 456,
+    "area_ocorrencia_id": 10,
+    "area": "Higiene Urbana",
+    "descricao": "Pedido de retirada ou devolução de contentor de média capacidade (4 rodas)",
+    "slug": "pedido-de-retirada-ou-devolucao-de-contentor-de-media-capacidade-4-rodas",
+    "en": "Request removal or return of a medium bin (4-wheel)",
+    "areaEn": "Urban Sanitation (waste and street cleaning)"
+  },
+  {
+    "id": 437,
+    "area_ocorrencia_id": 10,
+    "area": "Higiene Urbana",
+    "descricao": "Pedido de sacos para resíduos",
+    "slug": "pedido-de-sacos-para-residuos",
+    "en": "Request waste sacks",
+    "areaEn": "Urban Sanitation (waste and street cleaning)"
+  },
+  {
+    "id": 265,
+    "area_ocorrencia_id": 10,
+    "area": "Higiene Urbana",
+    "descricao": "Reclamações no âmbito da recolha diária de resíduos sólidos urbanos",
+    "slug": "reclamacoes-no-ambito-da-recolha-diaria-de-residuos-solidos-urbanos",
+    "en": "Complaints about daily household waste collection",
+    "areaEn": "Urban Sanitation (waste and street cleaning)"
+  },
+  {
+    "id": 258,
+    "area_ocorrencia_id": 10,
+    "area": "Higiene Urbana",
+    "descricao": "Remoção-Jardins-Pedido de recolha",
+    "slug": "remocao-jardins-pedido-de-recolha",
+    "en": "Removal – Garden waste – Collection request",
+    "areaEn": "Urban Sanitation (waste and street cleaning)"
+  },
+  {
+    "id": 256,
+    "area_ocorrencia_id": 10,
+    "area": "Higiene Urbana",
+    "descricao": "Remoção-Monstros-Pedido de recolha",
+    "slug": "remocao-monstros-pedido-de-recolha",
+    "en": "Removal – Bulky waste ('monstros') – Collection request",
+    "areaEn": "Urban Sanitation (waste and street cleaning)"
+  },
+  {
+    "id": 257,
+    "area_ocorrencia_id": 10,
+    "area": "Higiene Urbana",
+    "descricao": "Remoção-RCD-Pedido de recolha",
+    "slug": "remocao-rcd-pedido-de-recolha",
+    "en": "Removal – Construction and demolition waste – Collection request",
+    "areaEn": "Urban Sanitation (waste and street cleaning)"
+  },
+  {
+    "id": 259,
+    "area_ocorrencia_id": 10,
+    "area": "Higiene Urbana",
+    "descricao": "Remoção Seletivas - Remoção pontual de papel/cartão",
+    "slug": "remocao-seletivas-remocao-pontual-de-papel-cartao",
+    "en": "Recycling removal – One-off paper/cardboard collection",
+    "areaEn": "Urban Sanitation (waste and street cleaning)"
+  },
+  {
+    "id": 55,
+    "area_ocorrencia_id": 10,
+    "area": "Higiene Urbana",
+    "descricao": "Resíduos em torno de ecoponto e vidrões",
+    "slug": "residuos-em-torno-de-ecoponto-e-vidroes",
+    "en": "Waste dumped around recycling points and bottle banks",
+    "areaEn": "Urban Sanitation (waste and street cleaning)"
+  },
+  {
+    "id": 262,
+    "area_ocorrencia_id": 10,
+    "area": "Higiene Urbana",
+    "descricao": "Sacos ou outros lixos abandonados",
+    "slug": "sacos-ou-outros-lixos-abandonados",
+    "en": "Abandoned bin bags or other litter",
+    "areaEn": "Urban Sanitation (waste and street cleaning)"
+  },
+  {
+    "id": 442,
+    "area_ocorrencia_id": 10,
+    "area": "Higiene Urbana",
+    "descricao": "Substituição ou reparação de ecoponto, vidrão ou ecoilha danificados",
+    "slug": "substituicao-ou-reparacao-de-ecoponto-vidrao-ou-ecoilha-danificados",
+    "en": "Replacement or repair of a damaged recycling point, bottle bank or recycling island",
+    "areaEn": "Urban Sanitation (waste and street cleaning)"
+  },
+  {
+    "id": 73,
+    "area_ocorrencia_id": 11,
+    "area": "Iluminação Pública",
+    "descricao": "Arruamento às escuras",
+    "slug": "arruamento-as-escuras",
+    "en": "Street in darkness",
+    "areaEn": "Public Lighting"
+  },
+  {
+    "id": 1151,
+    "area_ocorrencia_id": 11,
+    "area": "Iluminação Pública",
+    "descricao": "Arruamento com luz insuficiente",
+    "slug": "arruamento-com-luz-insuficiente",
+    "en": "Street with insufficient light",
+    "areaEn": "Public Lighting"
+  },
+  {
+    "id": 74,
+    "area_ocorrencia_id": 11,
+    "area": "Iluminação Pública",
+    "descricao": "Candeeiro apagado",
+    "slug": "candeeiro-apagado",
+    "en": "Street lamp out",
+    "areaEn": "Public Lighting"
+  },
+  {
+    "id": 1149,
+    "area_ocorrencia_id": 11,
+    "area": "Iluminação Pública",
+    "descricao": "Candeeiro com luz intermitente",
+    "slug": "candeeiro-com-luz-intermitente",
+    "en": "Street lamp flickering",
+    "areaEn": "Public Lighting"
+  },
+  {
+    "id": 1150,
+    "area_ocorrencia_id": 11,
+    "area": "Iluminação Pública",
+    "descricao": "Candeeiro danificado (caído, partido, cabos elétricos à vista, falta de portinhola, etc)",
+    "slug": "candeeiro-danificado-caido-partido-cabos-eletricos-a-vista-falta-de-portinhola-etc",
+    "en": "Street lamp damaged (fallen, broken, exposed electrical cables, missing access cover, etc.)",
+    "areaEn": "Public Lighting"
+  },
+  {
+    "id": 82,
+    "area_ocorrencia_id": 11,
+    "area": "Iluminação Pública",
+    "descricao": "Monumento - Manutenção em iluminação",
+    "slug": "monumento-manutencao-em-iluminacao",
+    "en": "Monument – Lighting maintenance",
+    "areaEn": "Public Lighting"
+  },
+  {
+    "id": 77,
+    "area_ocorrencia_id": 11,
+    "area": "Iluminação Pública",
+    "descricao": "Outras situações",
+    "slug": "outras-situacoes",
+    "en": "Other situations",
+    "areaEn": "Public Lighting"
+  },
+  {
+    "id": 1262,
+    "area_ocorrencia_id": 5,
+    "area": "Passeios e Acessibilidades",
+    "descricao": "Abatimentos superficiais",
+    "slug": "abatimentos-superficiais--passeios-e-acessibilidades",
+    "en": "Surface subsidence (pavement)",
+    "areaEn": "Pavements and Accessibility"
+  },
+  {
+    "id": 965,
+    "area_ocorrencia_id": 5,
+    "area": "Passeios e Acessibilidades",
+    "descricao": "Abrigos concessionados de paragens de transportes públicos - Manutenção",
+    "slug": "abrigos-concessionados-de-paragens-de-transportes-publicos-manutencao",
+    "en": "Contracted public transport stop shelters – Maintenance",
+    "areaEn": "Pavements and Accessibility"
+  },
+  {
+    "id": 7,
+    "area_ocorrencia_id": 5,
+    "area": "Passeios e Acessibilidades",
+    "descricao": "Acessos para cidadãos com mobilidade reduzida",
+    "slug": "acessos-para-cidadaos-com-mobilidade-reduzida",
+    "en": "Access for citizens with reduced mobility",
+    "areaEn": "Pavements and Accessibility"
+  },
+  {
+    "id": 953,
+    "area_ocorrencia_id": 5,
+    "area": "Passeios e Acessibilidades",
+    "descricao": "Buraco no passeio - Betão ou outros revestimentos",
+    "slug": "buraco-no-passeio-betao-ou-outros-revestimentos",
+    "en": "Hole in the pavement – Concrete or other surfacing",
+    "areaEn": "Pavements and Accessibility"
+  },
+  {
+    "id": 653,
+    "area_ocorrencia_id": 5,
+    "area": "Passeios e Acessibilidades",
+    "descricao": "Calçada artística - Manutenção",
+    "slug": "calcada-artistica-manutencao",
+    "en": "Decorative calçada stone paving – Maintenance",
+    "areaEn": "Pavements and Accessibility"
+  },
+  {
+    "id": 963,
+    "area_ocorrencia_id": 5,
+    "area": "Passeios e Acessibilidades",
+    "descricao": "Caleira danificada em passeios",
+    "slug": "caleira-danificada-em-passeios",
+    "en": "Damaged drainage channel in a pavement",
+    "areaEn": "Pavements and Accessibility"
+  },
+  {
+    "id": 645,
+    "area_ocorrencia_id": 5,
+    "area": "Passeios e Acessibilidades",
+    "descricao": "Colocação de novo mobiliário urbano",
+    "slug": "colocacao-de-novo-mobiliario-urbano--passeios-e-acessibilidades",
+    "en": "Installation of new street furniture",
+    "areaEn": "Pavements and Accessibility"
+  },
+  {
+    "id": 646,
+    "area_ocorrencia_id": 5,
+    "area": "Passeios e Acessibilidades",
+    "descricao": "Colocação de novos pilaretes",
+    "slug": "colocacao-de-novos-pilaretes",
+    "en": "Installation of new bollards",
+    "areaEn": "Pavements and Accessibility"
+  },
+  {
+    "id": 1053,
+    "area_ocorrencia_id": 5,
+    "area": "Passeios e Acessibilidades",
+    "descricao": "Concessionárias - Danos e obras",
+    "slug": "concessionarias-danos-e-obras--passeios-e-acessibilidades",
+    "en": "Utility companies – Damage and works",
+    "areaEn": "Pavements and Accessibility"
+  },
+  {
+    "id": 1064,
+    "area_ocorrencia_id": 5,
+    "area": "Passeios e Acessibilidades",
+    "descricao": "Corrimãos, guardas ou gradeamentos - Manutenção",
+    "slug": "corrimaos-guardas-ou-gradeamentos-manutencao",
+    "en": "Handrails, guardrails or railings – Maintenance",
+    "areaEn": "Pavements and Accessibility"
+  },
+  {
+    "id": 506,
+    "area_ocorrencia_id": 5,
+    "area": "Passeios e Acessibilidades",
+    "descricao": "Descalcetamento do passeio",
+    "slug": "descalcetamento-do-passeio",
+    "en": "Loose or missing pavement cobbles",
+    "areaEn": "Pavements and Accessibility"
+  },
+  {
+    "id": 40,
+    "area_ocorrencia_id": 5,
+    "area": "Passeios e Acessibilidades",
+    "descricao": "Lancil danificado ou em falta",
+    "slug": "lancil-danificado-ou-em-falta",
+    "en": "Kerbstone damaged or missing",
+    "areaEn": "Pavements and Accessibility"
+  },
+  {
+    "id": 588,
+    "area_ocorrencia_id": 5,
+    "area": "Passeios e Acessibilidades",
+    "descricao": "Marcos e bocas de incêndio (Fuga de água)",
+    "slug": "marcos-e-bocas-de-incendio-fuga-de-agua",
+    "en": "Fire hydrants (water leak)",
+    "areaEn": "Pavements and Accessibility"
+  },
+  {
+    "id": 102,
+    "area_ocorrencia_id": 5,
+    "area": "Passeios e Acessibilidades",
+    "descricao": "Mesas, bancos ou outro mobiliário urbano - Manutenção",
+    "slug": "mesas-bancos-ou-outro-mobiliario-urbano-manutencao--passeios-e-acessibilidades",
+    "en": "Tables, benches or other street furniture – Maintenance",
+    "areaEn": "Pavements and Accessibility"
+  },
+  {
+    "id": 51,
+    "area_ocorrencia_id": 5,
+    "area": "Passeios e Acessibilidades",
+    "descricao": "Pilaretes - Manutenção",
+    "slug": "pilaretes-manutencao",
+    "en": "Bollards – Maintenance",
+    "areaEn": "Pavements and Accessibility"
+  },
+  {
+    "id": 106,
+    "area_ocorrencia_id": 5,
+    "area": "Passeios e Acessibilidades",
+    "descricao": "Placa toponímica danificada ou em falta",
+    "slug": "placa-toponimica-danificada-ou-em-falta",
+    "en": "Street name plate damaged or missing",
+    "areaEn": "Pavements and Accessibility"
+  },
+  {
+    "id": 136,
+    "area_ocorrencia_id": 21,
+    "area": "Saneamento",
+    "descricao": "Entupimento de sarjeta ou sumidouro",
+    "slug": "entupimento-de-sarjeta-ou-sumidouro",
+    "en": "Blocked gully or storm drain",
+    "areaEn": "Sewerage and Drainage"
+  },
+  {
+    "id": 1276,
+    "area_ocorrencia_id": 21,
+    "area": "Saneamento",
+    "descricao": "Fuga de água potável em espaço público (EPAL)",
+    "slug": "fuga-de-agua-potavel-em-espaco-publico-epal",
+    "en": "Drinking water leak in a public space (EPAL)",
+    "areaEn": "Sewerage and Drainage"
+  },
+  {
+    "id": 139,
+    "area_ocorrencia_id": 21,
+    "area": "Saneamento",
+    "descricao": "Grelha de sumidouro danificada ou em falta",
+    "slug": "grelha-de-sumidouro-danificada-ou-em-falta",
+    "en": "Storm drain grating damaged or missing",
+    "areaEn": "Sewerage and Drainage"
+  },
+  {
+    "id": 134,
+    "area_ocorrencia_id": 21,
+    "area": "Saneamento",
+    "descricao": "Inundação em espaço público ou esgoto na via (exceto fuga de água)",
+    "slug": "inundacao-em-espaco-publico-ou-esgoto-na-via-exceto-fuga-de-agua",
+    "en": "Flooding in a public space, or sewage on the street (excluding water leaks)",
+    "areaEn": "Sewerage and Drainage"
+  },
+  {
+    "id": 1269,
+    "area_ocorrencia_id": 21,
+    "area": "Saneamento",
+    "descricao": "Obstrução de coletor/ramal de esgoto",
+    "slug": "obstrucao-de-coletor-ramal-de-esgoto",
+    "en": "Blocked sewer main or connection",
+    "areaEn": "Sewerage and Drainage"
+  },
+  {
+    "id": 140,
+    "area_ocorrencia_id": 21,
+    "area": "Saneamento",
+    "descricao": "Sarjeta danificada",
+    "slug": "sarjeta-danificada",
+    "en": "Damaged gully",
+    "areaEn": "Sewerage and Drainage"
+  },
+  {
+    "id": 141,
+    "area_ocorrencia_id": 21,
+    "area": "Saneamento",
+    "descricao": "Tampa de esgoto danificada ou desnivelada",
+    "slug": "tampa-de-esgoto-danificada-ou-desnivelada",
+    "en": "Manhole cover damaged or uneven",
+    "areaEn": "Sewerage and Drainage"
+  },
+  {
+    "id": 1133,
+    "area_ocorrencia_id": 16,
+    "area": "Segurança Pública e Ruído",
+    "descricao": "Edifício, muro, escarpa ou talude degradado",
+    "slug": "edificio-muro-escarpa-ou-talude-degradado",
+    "en": "Degraded building, wall, escarpment or embankment",
+    "areaEn": "Public Safety and Noise"
+  },
+  {
+    "id": 12,
+    "area_ocorrencia_id": 16,
+    "area": "Segurança Pública e Ruído",
+    "descricao": "Estacionamento abusivo prolongado (há mais de 30 dias)",
+    "slug": "estacionamento-abusivo-prolongado-ha-mais-de-30-dias",
+    "en": "Prolonged illegal parking (more than 30 days)",
+    "areaEn": "Public Safety and Noise"
+  },
+  {
+    "id": 648,
+    "area_ocorrencia_id": 16,
+    "area": "Segurança Pública e Ruído",
+    "descricao": "Fiscalização ambiental",
+    "slug": "fiscalizacao-ambiental",
+    "en": "Environmental enforcement",
+    "areaEn": "Public Safety and Noise"
+  },
+  {
+    "id": 1139,
+    "area_ocorrencia_id": 16,
+    "area": "Segurança Pública e Ruído",
+    "descricao": "Fiscalização de alojamento locais (turísticos)",
+    "slug": "fiscalizacao-de-alojamento-locais-turisticos",
+    "en": "Short-term tourist rental enforcement",
+    "areaEn": "Public Safety and Noise"
+  },
+  {
+    "id": 1140,
+    "area_ocorrencia_id": 16,
+    "area": "Segurança Pública e Ruído",
+    "descricao": "Fiscalização de animais (sem documentos, excesso, insalubridade e ruído)",
+    "slug": "fiscalizacao-de-animais-sem-documentos-excesso-insalubridade-e-ruido",
+    "en": "Animal enforcement (undocumented, excessive numbers, unsanitary conditions and noise)",
+    "areaEn": "Public Safety and Noise"
+  },
+  {
+    "id": 146,
+    "area_ocorrencia_id": 16,
+    "area": "Segurança Pública e Ruído",
+    "descricao": "Fiscalização de estabelecimentos comerciais - horário e ruído música",
+    "slug": "fiscalizacao-de-estabelecimentos-comerciais-horario-e-ruido-musica",
+    "en": "Commercial premises enforcement – opening hours and music noise",
+    "areaEn": "Public Safety and Noise"
+  },
+  {
+    "id": 1138,
+    "area_ocorrencia_id": 16,
+    "area": "Segurança Pública e Ruído",
+    "descricao": "Fiscalização de insalubridade em propriedades/terrenos/via pública",
+    "slug": "fiscalizacao-de-insalubridade-em-propriedades-terrenos-via-publica",
+    "en": "Unsanitary conditions enforcement on properties, land or the public highway",
+    "areaEn": "Public Safety and Noise"
+  },
+  {
+    "id": 1273,
+    "area_ocorrencia_id": 16,
+    "area": "Segurança Pública e Ruído",
+    "descricao": "Fiscalização de trânsito",
+    "slug": "fiscalizacao-de-transito",
+    "en": "Traffic enforcement",
+    "areaEn": "Public Safety and Noise"
+  },
+  {
+    "id": 1136,
+    "area_ocorrencia_id": 16,
+    "area": "Segurança Pública e Ruído",
+    "descricao": "Fiscalização de venda ambulante",
+    "slug": "fiscalizacao-de-venda-ambulante",
+    "en": "Street vending enforcement",
+    "areaEn": "Public Safety and Noise"
+  },
+  {
+    "id": 1072,
+    "area_ocorrencia_id": 16,
+    "area": "Segurança Pública e Ruído",
+    "descricao": "Obras ilegais - Edificado, via pública e ruído",
+    "slug": "obras-ilegais-edificado-via-publica-e-ruido",
+    "en": "Illegal building works – Buildings, public highway and noise",
+    "areaEn": "Public Safety and Noise"
+  },
+  {
+    "id": 150,
+    "area_ocorrencia_id": 16,
+    "area": "Segurança Pública e Ruído",
+    "descricao": "Ocupação ilegal de edificado municipal",
+    "slug": "ocupacao-ilegal-de-edificado-municipal",
+    "en": "Illegal occupation of municipal buildings",
+    "areaEn": "Public Safety and Noise"
+  },
+  {
+    "id": 145,
+    "area_ocorrencia_id": 16,
+    "area": "Segurança Pública e Ruído",
+    "descricao": "Ocupação ilegal de via pública",
+    "slug": "ocupacao-ilegal-de-via-publica",
+    "en": "Illegal occupation of the public highway",
+    "areaEn": "Public Safety and Noise"
+  },
+  {
+    "id": 485,
+    "area_ocorrencia_id": 16,
+    "area": "Segurança Pública e Ruído",
+    "descricao": "Viaturas abandonadas",
+    "slug": "viaturas-abandonadas",
+    "en": "Abandoned vehicles",
+    "areaEn": "Public Safety and Noise"
+  }
+]

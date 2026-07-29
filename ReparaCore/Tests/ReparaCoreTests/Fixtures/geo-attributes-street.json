@@ -1,0 +1,19 @@
+{
+  "_note": "The other morada shape: a point that landed on the roadway rather than a building footprint. idtipo 8, designacao instead of morada, cod_via instead of cod_sig, and no house number anywhere. This is the shape no captured submission has ever exercised — see the README's 'Known unverified'.",
+  "morada": [
+    {
+      "idtipo": "8",
+      "designacao": "Rua Exemplo",
+      "cod_via": "34311",
+      "objectid": 222222,
+      "freguesia": "121"
+    }
+  ],
+  "freguesia": "121",
+  "freguesia_nome": "Freguesia Exemplo",
+  "PFM": "-1",
+  "UIT": "59",
+  "EVENE": "-1",
+  "COD_LOCAL": "00000",
+  "nearBy": []
+}
