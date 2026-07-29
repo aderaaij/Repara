@@ -25,6 +25,7 @@ struct ReviewView: View {
             addressSection
             typeSection
             descriptionSection
+            bookedSection
             duplicatesSection
             photoSection
             submitSection
@@ -63,7 +64,10 @@ struct ReviewView: View {
                 PinMap(
                     coordinate: pin,
                     isResolving: model.isResolving,
-                    neighbours: model.prepared?.location.nearBy ?? [],
+                    // Booked collections too: seeing one sitting on the same
+                    // doorway as the pin is the clearest possible version of
+                    // "that is the thing you are about to report".
+                    neighbours: (model.prepared?.location.nearBy ?? []) + model.bookedCollections,
                     onSettle: { model.resolve() }
                 )
                 .frame(height: 240)
@@ -180,6 +184,68 @@ struct ReviewView: View {
         }
     }
 
+    // MARK: Already booked for collection
+
+    /// Not a duplicate warning, and deliberately placed above one.
+    ///
+    /// A duplicate says "somebody else has already told them". This says "this
+    /// is already scheduled and a report on top of it sends a second worker to a
+    /// job that is on somebody's list" — which is a reason not to file at all,
+    /// not a reason to check. The portal scopes its nearby list to the type
+    /// being filed, so nothing else in this app can see these.
+    ///
+    /// No model is involved in the claim. The type ids are known to be
+    /// collection requests from the bundled map, so this says what it says on
+    /// the strength of the taxonomy alone.
+    @ViewBuilder private var bookedSection: some View {
+        if !model.bookedCollections.isEmpty {
+            Section {
+                ForEach(model.bookedCollections) { booked in
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(booked.tipo)
+                            .font(.subheadline.weight(.medium))
+                        if let text = booked.descricao, !text.isEmpty {
+                            Text(text).font(.footnote)
+                        }
+                        Text("\(Int(booked.distance)) m away · \(booked.estado)")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+            } header: {
+                Label("Already booked for collection", systemImage: "clock.badge.checkmark")
+                    .foregroundStyle(.orange)
+            } footer: {
+                Text(
+                    "Somebody has asked the council to come and collect something here, and it has not been marked done. If that is what you are looking at, it is already scheduled — filing this sends a second worker to a job that is already on the list."
+                )
+            }
+        } else if model.isCheckingCollections {
+            // Named rather than silent: this section appears a second after the
+            // rest of the screen, and an unexplained warning that pops in later
+            // reads as the app having changed its mind.
+            Section {
+                HStack {
+                    ProgressView()
+                    Text("Checking whether this is already booked for collection…")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                }
+            }
+        } else if model.collectionCheckFailed {
+            // "Nothing is booked" and "we could not find out" must not look the
+            // same, and the honest version of the second is to say so.
+            Section {
+                Label(
+                    "Could not check whether this is already booked for collection. It may be.",
+                    systemImage: "wifi.exclamationmark"
+                )
+                .font(.footnote)
+                .foregroundStyle(.secondary)
+            }
+        }
+    }
+
     // MARK: Duplicates
 
     /// Two sources, deliberately merged into one section: the deterministic
@@ -189,7 +255,11 @@ struct ReviewView: View {
     @ViewBuilder private var duplicatesSection: some View {
         let geometric = model.prepared?.possibleDuplicates ?? []
         let flagged = model.flaggedDuplicates.filter { candidate in
+            // A booked collection already has its own section above, which says
+            // something stronger than "possibly already reported". Listing it
+            // twice reads as two separate problems.
             !geometric.contains { $0.id == candidate.id }
+                && !model.bookedCollections.contains { $0.id == candidate.id }
         }
 
         if !geometric.isEmpty || !flagged.isEmpty {
@@ -204,7 +274,7 @@ struct ReviewView: View {
                 Label("Possibly already reported", systemImage: "exclamationmark.2")
                     .foregroundStyle(.orange)
             } footer: {
-                Text("A duplicate wastes a worker's trip — check whether one of these is already your problem. Open reports of the same type within 50 m are listed automatically; \(model.providerName) also reads the descriptions, because the same problem is often filed under a different type.")
+                Text("A duplicate wastes a worker's trip — check whether one of these is already your problem. Open reports of the same type within \(Int(Submitter.duplicateRadiusMetres)) m are listed automatically; \(model.providerName) reads the descriptions of those and of anything found under a related type, because the same problem is often filed under a different one.")
             }
         }
     }

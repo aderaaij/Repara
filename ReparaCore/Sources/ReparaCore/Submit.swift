@@ -138,7 +138,13 @@ public struct Submitter: Sendable {
     /// "máximo(2000 caracteres)". Enforce the lower number — being truncated
     /// server-side would silently drop the end of a report.
     public static let maxDescription = 2000
-    static let duplicateRadiusMetres = 50.0
+
+    /// How close another report has to be to be the same problem rather than a
+    /// similar one two doors down. Public because the cross-type check in the
+    /// app applies the same radius — one number, so the Review screen cannot
+    /// warn about a booked collection 80 m away while staying silent about a
+    /// duplicate at the same distance.
+    public static let duplicateRadiusMetres = 50.0
 
     public init(client: PortalClient) {
         self.client = client
@@ -162,6 +168,17 @@ public struct Submitter: Sendable {
 
         let location = try await Geo.resolve(client, at: coordinate, tipoId: type.id)
 
+        // The type check is belt and braces, not a filter that does work: the
+        // portal already scoped `nearBy` to the type this call asked for, and
+        // every row of a captured 89-entry answer was that type. It stays
+        // because the API is undocumented and unversioned, and a report of the
+        // wrong type flagged as a duplicate would talk somebody out of filing a
+        // real problem.
+        //
+        // **Reading it as cross-type duplicate detection is the mistake to
+        // avoid.** It cannot be: the list only ever holds one type. Finding the
+        // same problem filed under a different id needs another request, which
+        // is `Geo.nearBy(tipoIds:)` and lives above this layer.
         let duplicates = location.nearBy.filter {
             $0.tipoId == type.id && $0.distance <= Self.duplicateRadiusMetres && !$0.isResolved
         }

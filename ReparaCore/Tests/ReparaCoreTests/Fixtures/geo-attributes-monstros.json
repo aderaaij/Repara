@@ -1,0 +1,61 @@
+{
+  "_note": "A getGeoAttributes response for ocoTipo=256 (Remoção-Monstros-Pedido de recolha) — the bulky-waste collection REQUEST somebody files before putting a mattress out. Every value is synthetic. The nearBy entries carry the identifying fields the real server sends, so the privacy boundary is proved on the cross-type path too: this list is the one that reaches a model provider. Names use .invalid, reserved by RFC 2606. The open entry sits 8 m from Projection.reference.ptTm06, the resolved one 30 m.",
+  "morada": [
+    {
+      "idtipo": "2",
+      "morada": "Rua Exemplo, 210",
+      "cod_sig": "1000000000000",
+      "objectid": 111111,
+      "freguesia": "121",
+      "codlocal_todos": null,
+      "nprincip": null
+    }
+  ],
+  "freguesia": "121",
+  "freguesia_nome": "Freguesia Exemplo",
+  "PFM": "-1",
+  "UIT": "59",
+  "EVENE": "-1",
+  "COD_LOCAL": "00000",
+  "nearBy": [
+    {
+      "id": 1000100,
+      "numero": "OCO/00100/2000",
+      "requerente": "Sicrano De Tal",
+      "email": "SICRANO.DETAL@EXAMPLE.INVALID",
+      "criador_id": 999900,
+      "logedUser": "UTILIZADOR@EXAMPLE.INVALID",
+      "local": "Rua Exemplo 210, 1000-000 Lisboa",
+      "referencia": null,
+      "descricao": "colchão e duas cadeiras para recolha",
+      "tipo": "Remoção-Monstros-Pedido de recolha",
+      "tipo_id": 256,
+      "geo_x": -87264.3457760187,
+      "geo_y": -106170.49242727536,
+      "area": "Higiene Urbana",
+      "area_oco_id": 10,
+      "freg_descricao": "Freguesia Exemplo",
+      "state": "Em curso",
+      "naminharua_estado": "Em curso"
+    },
+    {
+      "id": 1000101,
+      "numero": "OCO/00101/2000",
+      "requerente": "Fulana De Tal",
+      "email": "FULANA.DETAL@EXAMPLE.INVALID",
+      "criador_id": 999901,
+      "local": "Rua Exemplo 44, 1000-000 Lisboa",
+      "referencia": null,
+      "descricao": "sofá recolhido",
+      "tipo": "Remoção-Monstros-Pedido de recolha",
+      "tipo_id": 256,
+      "geo_x": -87251.1457760187,
+      "geo_y": -106152.89242727536,
+      "area": "Higiene Urbana",
+      "area_oco_id": 10,
+      "freg_descricao": "Freguesia Exemplo",
+      "state": "Resolvido",
+      "naminharua_estado": "Resolvido"
+    }
+  ]
+}

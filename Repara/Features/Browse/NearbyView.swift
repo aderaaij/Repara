@@ -198,6 +198,8 @@ struct NearbyView: View {
             }
 
             if !browser.results.isEmpty {
+                widenOffer
+
                 Section {
                     ForEach(browser.results) { report in
                         row(report)
@@ -208,7 +210,9 @@ struct NearbyView: View {
                     )
                 } footer: {
                     Text(
-                        "One search asks the council's server once, for one type. Every other type is out there too — it just takes another search. Nothing on this screen files anything."
+                        browser.isWidened
+                            ? "\(browser.includedTypes.count) types searched, one request each. Nothing on this screen files anything."
+                            : "One search asks the council's server once, for one type. Every other type is out there too — it just takes another search. Nothing on this screen files anything."
                     )
                 }
             }
@@ -216,12 +220,52 @@ struct NearbyView: View {
         .listStyle(.plain)
         .refreshable {
             // The explicit way to get past the cache, for a place that was
-            // searched a while ago.
-            if let target = browser.searchedAt ?? centre {
-                await browser.search(at: target, refreshing: true)
-            }
+            // searched a while ago. A widened look stays widened — dropping back
+            // to one type on a refresh would quietly hide reports that were on
+            // screen a second ago.
+            guard let target = browser.searchedAt ?? centre else { return }
+            let wasWidened = browser.isWidened
+            await browser.search(at: target, refreshing: true)
+            if wasWidened { await browser.widen() }
         }
         .overlay { emptyState }
+    }
+
+    // MARK: Widening
+
+    /// The offer to look under the types that could be holding the same problem.
+    ///
+    /// Only ever an offer. It appears when the selected type actually has
+    /// siblings, which is what makes it worth reading — a permanent "search
+    /// wider" button teaches nobody anything, whereas this appearing on litter
+    /// and not on graffiti says something true about how the council works.
+    @ViewBuilder private var widenOffer: some View {
+        let related = browser.relatedTypes
+        if !related.isEmpty, browser.searchedAt != nil, !browser.isSearching {
+            Section {
+                Button {
+                    Task { await browser.widen() }
+                } label: {
+                    Label(widenPrompt(related), systemImage: "arrow.triangle.branch")
+                        .font(.footnote)
+                }
+                ForEach(related) { candidate in
+                    Text(candidate.type.descricao)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+            } footer: {
+                Text(
+                    "\(related.count) more request\(related.count == 1 ? "" : "s") to the council's server, one per type."
+                )
+            }
+        }
+    }
+
+    private func widenPrompt(_ related: [RelatedType]) -> String {
+        related.contains { $0.relation == .collectedByRequest }
+            ? "Things like this are also collected by request — check whether one is already booked here"
+            : "This could also have been filed under another type — check those too"
     }
 
     private func row(_ report: NearByOccurrence) -> some View {
@@ -246,6 +290,14 @@ struct NearbyView: View {
                 Text(text)
                     .font(.footnote)
                     .lineLimit(expanded.contains(report.id) ? nil : 3)
+            }
+
+            // Only once the list spans types. Until then every row is the type
+            // named in the bar above, and repeating it on each one is noise.
+            if browser.isWidened, !report.tipo.isEmpty {
+                Text(report.tipo)
+                    .font(.caption2.weight(.medium))
+                    .foregroundStyle(.secondary)
             }
 
             Text("\(distanceLabel(report)) away · \(report.freguesia)")
@@ -281,13 +333,23 @@ struct NearbyView: View {
             }
         } else if browser.results.isEmpty && !browser.isSearching && browser.failure == nil {
             if browser.hasSearched {
-                ContentUnavailableView(
-                    "Nothing of this type here",
-                    systemImage: "checkmark.circle",
-                    description: Text(
-                        "No open or closed \(browser.type?.descricao.lowercased() ?? "report") within about \(Int(Geo.nearByRadiusMetres)) m of that point. Move the map and search again, or pick another type."
+                // The most important place the offer appears: an empty answer
+                // under one type is exactly when somebody concludes the area is
+                // clear, and the portal only ever answered about one type.
+                ContentUnavailableView {
+                    Label("Nothing of this type here", systemImage: "checkmark.circle")
+                } description: {
+                    Text(
+                        "No open or closed \(browser.type?.descricao.lowercased() ?? "report") within about \(Int(Geo.nearByRadiusMetres)) m of that point. The portal only answers about the type asked for, so this is not the same as nothing being here."
                     )
-                )
+                } actions: {
+                    if !browser.relatedTypes.isEmpty, browser.searchedAt != nil {
+                        Button(widenPrompt(browser.relatedTypes)) {
+                            Task { await browser.widen() }
+                        }
+                        .buttonStyle(.borderedProminent)
+                    }
+                }
             } else {
                 ContentUnavailableView(
                     "Search where you are looking",

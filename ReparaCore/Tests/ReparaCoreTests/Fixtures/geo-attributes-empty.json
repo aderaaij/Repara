@@ -1,0 +1,21 @@
+{
+  "_note": "A getGeoAttributes response that resolves an address but has nothing reported under the type asked for. This is the ordinary answer for most of the 127 types at most points — the portal scopes nearBy to the requested ocoTipo, so an empty list means 'nothing of THIS type here', never 'nothing here'. Every value is synthetic.",
+  "morada": [
+    {
+      "idtipo": "2",
+      "morada": "Rua Exemplo, 210",
+      "cod_sig": "1000000000000",
+      "objectid": 111111,
+      "freguesia": "121",
+      "codlocal_todos": null,
+      "nprincip": null
+    }
+  ],
+  "freguesia": "121",
+  "freguesia_nome": "Freguesia Exemplo",
+  "PFM": "-1",
+  "UIT": "59",
+  "EVENE": "-1",
+  "COD_LOCAL": "00000",
+  "nearBy": []
+}

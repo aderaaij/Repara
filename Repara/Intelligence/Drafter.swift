@@ -278,6 +278,11 @@ struct Drafter {
         carriageway are two types and one hole. Two problems of the same kind a few doors apart \
         are not the same problem.
 
+        The list spans several report types, and some of them are requests rather than \
+        complaints: a resident asking the council to come and collect something is how a mattress \
+        legitimately ends up on a pavement. A request describing the same object is the same \
+        thing, so flag it.
+
         Getting this wrong costs something either way: a duplicate wastes a council worker's trip, \
         and a wrong flag talks somebody out of reporting a real problem. Flag a report when it \
         plausibly describes the same thing. If you are unsure, still flag it, and say what you are \

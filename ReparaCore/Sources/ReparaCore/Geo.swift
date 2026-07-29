@@ -29,6 +29,34 @@ public struct ResolvedLocation: Sendable {
     }
 }
 
+/// The result of looking under more than one occurrence type at once.
+///
+/// `failed` is not bookkeeping. This whole mechanism exists to tell somebody
+/// "that mattress is already booked for collection", and the inverse claim —
+/// "nothing is booked here, go ahead and file" — is only honest if the lookup
+/// actually happened. A caller that ignores `failed` will eventually tell
+/// somebody the coast is clear because the network was down.
+public struct RelatedSearch: Sendable {
+    /// Everything found, deduplicated by occurrence id and nearest-first.
+    public let found: [NearByOccurrence]
+    /// The type ids that answered.
+    public let searched: [Int]
+    /// The type ids that did not. Nothing is known about these.
+    public let failed: [Int]
+
+    public init(found: [NearByOccurrence], searched: [Int], failed: [Int]) {
+        self.found = found
+        self.searched = searched
+        self.failed = failed
+    }
+
+    /// True when every type asked for answered, so an empty `found` genuinely
+    /// means nothing is there.
+    public var isComplete: Bool { failed.isEmpty }
+
+    public var isEmpty: Bool { found.isEmpty }
+}
+
 public enum Geo {
 
     /// How far out `nearBy` reaches, near enough.
@@ -85,6 +113,55 @@ public enum Geo {
         return try await attributes(client, at: point, tipoId: tipoId)
             .nearBy
             .stripped(relativeTo: point)
+    }
+
+    /// What the portal has around a point under **several** types.
+    ///
+    /// The server answers for one `ocoTipo` at a time, so this is one request
+    /// per type and there is no way to make it fewer. That is the entire cost of
+    /// cross-type duplicate detection, and why `Taxonomy.maxRelatedLookups`
+    /// caps the caller at three: see `Taxonomy.related(to:)`.
+    ///
+    /// Requests go **one at a time**, not concurrently. Three simultaneous
+    /// connections to a municipal server to save a second of somebody's time is
+    /// not a trade this app makes.
+    ///
+    /// A type that fails does not take the others down with it. The distinction
+    /// matters to the caller: "nothing is booked here" and "we could not find
+    /// out" must not look the same, or a failed lookup reads as an all-clear.
+    public static func nearBy(
+        _ client: PortalClient,
+        around coordinate: LatLng,
+        tipoIds: [Int]
+    ) async throws -> RelatedSearch {
+        try Projection.verify()
+        let point = Projection.forward(coordinate)
+
+        var found: [NearByOccurrence] = []
+        var searched: [Int] = []
+        var failed: [Int] = []
+
+        for tipoId in tipoIds {
+            do {
+                found += try await attributes(client, at: point, tipoId: tipoId).nearBy
+                searched.append(tipoId)
+            } catch is CancellationError {
+                throw CancellationError()
+            } catch {
+                failed.append(tipoId)
+            }
+        }
+
+        // Deduplicated by occurrence id: a report cannot be two occurrences, and
+        // nothing guarantees the server never returns one under two types.
+        var seen = Set<Int>()
+        let unique = found.filter { seen.insert($0.id).inserted }
+
+        return RelatedSearch(
+            found: unique.stripped(relativeTo: point),
+            searched: searched,
+            failed: failed
+        )
     }
 
     /// Turn a raw coordinate into the full `geo` block of a submission.

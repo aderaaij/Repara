@@ -39,8 +39,26 @@ public enum TaxonomyError: Error, CustomStringConvertible {
 public struct Taxonomy: Sendable {
     public let types: [TipoOcorrencia]
 
+    /// Type id → the ids of every type worded *identically* to it in another
+    /// area. Built once at init, because `related(to:)` is read from a view body.
+    ///
+    /// These are the five descriptions `resolve` already has to disambiguate
+    /// with a `--<area>` slug suffix. Same wording and a different department is
+    /// the definition of a confusable pair, so the sibling map gets them for
+    /// free and stays correct when `taxonomy.json` is regenerated — no hand
+    /// curation to fall out of step.
+    let collisions: [Int: [Int]]
+
     public init(types: [TipoOcorrencia]) {
         self.types = types
+
+        var byWording: [String: [Int]] = [:]
+        for type in types { byWording[slugify(type.descricao), default: []].append(type.id) }
+        var collisions: [Int: [Int]] = [:]
+        for (_, ids) in byWording where ids.count > 1 {
+            for id in ids { collisions[id] = ids.filter { $0 != id } }
+        }
+        self.collisions = collisions
     }
 
     /// The bundled taxonomy. Loaded once; a missing or malformed resource is a

@@ -112,6 +112,42 @@ enum Fixture {
         let (session, mock) = MockURLProtocol.make { _ in .init(body: body) }
         return (PortalClient(session: session), mock)
     }
+
+    /// A client that answers each `ocoTipo` with its own fixture — the way the
+    /// live server behaves, since it scopes `nearBy` to the type asked for.
+    ///
+    /// A type with no entry gets `status`, which is how a cluster search's
+    /// partial-failure path is exercised: one type falls over, the rest answer.
+    static func client(
+        perType fixtures: [Int: String],
+        otherwise status: Int = 500
+    ) throws -> (PortalClient, MockURLProtocol.Session) {
+        let bodies = try fixtures.mapValues { try data($0) }
+        let (session, mock) = MockURLProtocol.make { request in
+            let tipo =
+                URLComponents(url: request.url!, resolvingAgainstBaseURL: false)?
+                .queryItems?.first { $0.name == "ocoTipo" }?.value
+                .flatMap(Int.init)
+            guard let tipo, let body = bodies[tipo] else {
+                return .init(status: status, body: Data("{}".utf8))
+            }
+            return .init(body: body)
+        }
+        return (PortalClient(session: session), mock)
+    }
+}
+
+extension MockURLProtocol.Session {
+    /// The `ocoTipo` of every request made, in order — the cost this test just
+    /// put on a municipal server.
+    var requestedTypes: [Int] {
+        requests.compactMap { request in
+            request.url.flatMap {
+                URLComponents(url: $0, resolvingAgainstBaseURL: false)?
+                    .queryItems?.first { $0.name == "ocoTipo" }?.value
+            }.flatMap(Int.init)
+        }
+    }
 }
 
 extension TipoOcorrencia {

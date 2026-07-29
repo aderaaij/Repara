@@ -152,8 +152,10 @@ final class AppModel {
         // leaving the flag set would spring it open again on the next sign-in.
         showingSettings = false
         // Someone else's neighbourhood should not still be in memory behind the
-        // welcome screen.
+        // welcome screen — neither what was browsed nor what was looked up on
+        // their behalf while filing.
         browse.reset()
+        collectionCache.removeAll()
         startOver()
     }
 
@@ -217,18 +219,17 @@ final class AppModel {
             try? await Task.sleep(for: .milliseconds(400))
             guard !Task.isCancelled, let self else { return }
 
-            self.isResolving = true
-            defer { self.isResolving = false }
+            let report: PreparedReport
             do {
-                self.prepared = try await self.submitter.prepare(
+                self.isResolving = true
+                defer { self.isResolving = false }
+                report = try await self.submitter.prepare(
                     type: type,
                     at: pin,
                     descricao: body,
                     referencia: self.referencia,
                     photos: self.photo.map { [Photo(jpeg: $0)] } ?? []
                 )
-                self.error = nil
-                if let prepared = self.prepared { self.judgeDuplicates(for: prepared) }
             } catch is CancellationError {
                 return
             } catch {
@@ -236,8 +237,122 @@ final class AppModel {
                 self.prepared = nil
                 self.error = self.describe(error)
                 self.clearDuplicateJudgement()
+                self.clearCollectionCheck()
+                return
             }
+
+            guard !Task.isCancelled else { return }
+            self.prepared = report
+            self.error = nil
+
+            // Both of these run *after* `isResolving` has dropped. Neither may
+            // hold up the Submit button: somebody standing in the street can
+            // file while the app is still looking things up, and a check that
+            // gates submission is a check that will one day strand them.
+            await self.checkForBookedCollections(for: report)
+            guard !Task.isCancelled else { return }
+            self.judgeDuplicates(for: report)
         }
+    }
+
+    // MARK: Already booked for collection
+
+    /// Open collection requests found near this pin, under a **different** type.
+    ///
+    /// The portal scopes `nearBy` to the one type asked for, so these are
+    /// invisible to everything else in the app: `prepare` never sees them and
+    /// neither does the Review map. Somebody books a bulky-waste collection and
+    /// puts the mattress out; a passer-by sees an abandoned mattress and files
+    /// fly-tipping. Two type ids, one mattress, and the second report sends a
+    /// worker to a job that is already on somebody's list.
+    private(set) var bookedCollections: [NearByOccurrence] = []
+
+    /// True when at least one of the lookups did not answer.
+    ///
+    /// Silence has to mean "nothing is booked", and it only does if the question
+    /// was actually asked. Without this an empty result after a failed request
+    /// reads as an all-clear.
+    private(set) var collectionCheckFailed = false
+    private(set) var isCheckingCollections = false
+
+    /// Same place to within ~10 m, same type: the pin moves continuously under a
+    /// finger and the answer does not change every metre.
+    private struct CollectionKey: Hashable {
+        let tipoId: Int
+        let x: Int
+        let y: Int
+
+        init(tipoId: Int, at point: PtTm06) {
+            self.tipoId = tipoId
+            x = Int((point.x / 10).rounded())
+            y = Int((point.y / 10).rounded())
+        }
+    }
+
+    private var collectionCache: [CollectionKey: RelatedSearch] = [:]
+
+    /// The one thing in this app that spends requests on the user's behalf
+    /// without being asked.
+    ///
+    /// It is limited to `.collectedByRequest` on purpose. Those are the reports
+    /// that mean *this is already handled, filing wastes a trip* — the case
+    /// where the person most in need of the warning is the one who would never
+    /// think to go looking for it. Merely similar types are an offer on the
+    /// Browse screen instead, where nobody is standing in the street.
+    ///
+    /// Capped at `Taxonomy.maxRelatedLookups` and cached per type and place, so
+    /// dragging the pin around the same corner does not re-buy the answer.
+    private func checkForBookedCollections(for report: PreparedReport) async {
+        let related = Taxonomy.bundled.related(to: report.type, matching: .collectedByRequest)
+        guard !related.isEmpty else {
+            clearCollectionCheck()
+            return
+        }
+
+        let key = CollectionKey(tipoId: report.type.id, at: report.location.point)
+        if let hit = collectionCache[key] {
+            apply(hit)
+            return
+        }
+
+        isCheckingCollections = true
+        defer { isCheckingCollections = false }
+
+        guard
+            let search = try? await Geo.nearBy(
+                client,
+                around: report.location.coordinate,
+                tipoIds: related.map(\.id)
+            )
+        else {
+            // A projection failure. Everything else is already folded into
+            // `RelatedSearch.failed`.
+            clearCollectionCheck()
+            collectionCheckFailed = true
+            return
+        }
+
+        guard !Task.isCancelled else { return }
+        // Only complete answers are cached. Caching a partial one would turn a
+        // moment's bad network into a warning that stays missing for as long as
+        // the screen is open.
+        if search.isComplete { collectionCache[key] = search }
+        apply(search)
+    }
+
+    private func apply(_ search: RelatedSearch) {
+        // Resolved requests are not a reason to stay quiet: if the collection
+        // has already happened and the thing is still on the pavement, that is
+        // exactly when somebody *should* report it.
+        bookedCollections = search.found.filter {
+            !$0.isResolved && $0.distance <= Submitter.duplicateRadiusMetres
+        }
+        collectionCheckFailed = !search.isComplete
+    }
+
+    private func clearCollectionCheck() {
+        bookedCollections = []
+        collectionCheckFailed = false
     }
 
     // MARK: Duplicate judgement
@@ -257,12 +372,28 @@ final class AppModel {
     /// The second model call, made only when there is something to compare
     /// against.
     ///
-    /// It adds no load on the municipal service — `prepare` already fetched
-    /// `nearBy` — but it is a paid call, and `resolve` runs every time the pin
-    /// moves. Hence the key: dragging the pin around the same few reports
-    /// re-uses the verdict instead of re-buying it.
+    /// It adds no load on the municipal service — `prepare` fetched the
+    /// same-type reports and `checkForBookedCollections` has already fetched the
+    /// rest — but it is a paid call, and `resolve` runs every time the pin moves.
+    /// Hence the key: dragging the pin around the same few reports re-uses the
+    /// verdict instead of re-buying it.
+    ///
+    /// It runs **after** the cross-type look, on the union of both, which is the
+    /// first time this call has ever had more than one type to read. Its whole
+    /// reason for existing is that the same problem gets filed under different
+    /// ids; until there was a second id in the list it could not have found one.
     private func judgeDuplicates(for report: PreparedReport) {
-        let nearBy = Array(report.location.nearBy.prefix(8))
+        // Merged nearest-first rather than same-type-first: eight is what the
+        // prompt carries, and a collection request 8 m away earns its slot
+        // ahead of a litter report at 90.
+        var seen = Set<Int>()
+        let nearBy = Array(
+            (report.location.nearBy + bookedCollections)
+                .filter { seen.insert($0.id).inserted }
+                .sorted { $0.distance < $1.distance }
+                .prefix(8)
+        )
+
         guard hasAPIKey, !nearBy.isEmpty else {
             clearDuplicateJudgement()
             return
@@ -344,6 +475,7 @@ final class AppModel {
     func startOver() {
         resolveTask?.cancel()
         clearDuplicateJudgement()
+        clearCollectionCheck()
         photo = nil
         photoForModel = nil
         userText = ""

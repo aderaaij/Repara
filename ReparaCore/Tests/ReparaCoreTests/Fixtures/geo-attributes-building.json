@@ -1,5 +1,7 @@
 {
   "_note": "A getGeoAttributes response in the shape the live portal returns, with every value replaced by a synthetic one. The nearBy entry deliberately carries the identifying fields the real server sends — requerente, email, criador_id, logedUser, local — so PrivacyTests can prove none of them survive parsing. The names use .invalid, which is reserved by RFC 2606.",
+  "_note_type": "This is the answer to ocoTipo=262, so every nearBy row is type 262. The portal scopes nearBy to the type asked for — 89 of 89 rows in the captured session were the type requested — and a fixture carrying a second type would depict a response the server does not produce. Checking another type costs another request; see Geo.nearBy(tipoIds:).",
+  "_note_rows": "One row per outcome of the duplicate filter, each excluded for exactly one reason: OCO/00000 is open and 20 m away, so it is the duplicate; OCO/00001 is open but 141 m away, excluded on distance alone; OCO/00002 is 14 m away but resolved, excluded on state alone.",
   "morada": [
     {
       "idtipo": "2",
@@ -46,16 +48,16 @@
       "criador_id": 999998,
       "local": "Rua Exemplo 9, 1000-000 Lisboa",
       "referencia": null,
-      "descricao": "outra descrição",
-      "tipo": "Grafitis",
-      "tipo_id": 98,
+      "descricao": "outra descrição, mais acima na rua",
+      "tipo": "Sacos ou outros lixos abandonados",
+      "tipo_id": 262,
       "geo_x": -87369.1457760187,
       "geo_y": -106276.89242727536,
       "area": "Higiene Urbana",
       "area_oco_id": 10,
       "freg_descricao": "Freguesia Exemplo",
-      "state": "Resolvido",
-      "naminharua_estado": "Resolvido"
+      "state": "Em curso",
+      "naminharua_estado": "Em curso"
     },
     {
       "id": 1000002,

@@ -148,23 +148,39 @@ struct PayloadTests {
 
     // MARK: Duplicates
 
-    @Test("open reports of the same type within 50 m are flagged, resolved ones are not")
+    /// The fixture is the portal's answer for one type, so all three neighbours
+    /// are that type — the server never sends another, and a fixture that did
+    /// would depict a response nothing has to handle. Each of the two rejects is
+    /// therefore rejected for exactly one reason.
+    @Test("open reports within 50 m are flagged; too far and already resolved are not")
     func duplicateDetection() async throws {
         let (client, _) = try Fixture.client(returning: "geo-attributes-building")
         let report = try await Submitter(client: client).prepare(
             type: .litter, at: Projection.reference.wgs84, descricao: "x")
 
-        // The fixture has three neighbours: an open litter report 20 m away, a
-        // resolved litter report 14 m away, and a resolved graffiti report far
-        // enough out to be irrelevant. Only the first is a duplicate worth
-        // warning about — a resolved report is not a reason to stay quiet, and
-        // a different type is a different work queue.
         #expect(report.location.nearBy.count == 3)
+        #expect(
+            report.location.nearBy.allSatisfy { $0.tipoId == TipoOcorrencia.litter.id },
+            "the portal scopes nearBy to the type asked for; this is what that looks like")
+
         let duplicate = try #require(report.possibleDuplicates.first)
         #expect(report.possibleDuplicates.count == 1)
         #expect(duplicate.numero == "OCO/00000/2000")
         #expect(duplicate.distance < Submitter.duplicateRadiusMetres)
         #expect(report.warnings.contains { $0.contains("already an open report") })
+
+        // Open, same type, and still not a duplicate: 141 m away is somebody
+        // else's rubbish. Excluded on distance alone.
+        let far = try #require(report.location.nearBy.first { $0.numero == "OCO/00001/2000" })
+        #expect(!far.isResolved)
+        #expect(far.distance > Submitter.duplicateRadiusMetres)
+
+        // Close enough, same type, already dealt with. A resolved report is not
+        // a reason to stay quiet — if it is still there, it needs reporting.
+        // Excluded on state alone.
+        let done = try #require(report.location.nearBy.first { $0.numero == "OCO/00002/2000" })
+        #expect(done.isResolved)
+        #expect(done.distance < Submitter.duplicateRadiusMetres)
     }
 
     @Test("nearby reports come back sorted by distance")
