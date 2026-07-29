@@ -391,13 +391,14 @@ final class AppModel {
         // Merged nearest-first rather than same-type-first: eight is what the
         // prompt carries, and a collection request 8 m away earns its slot
         // ahead of a litter report at 90.
-        var seen = Set<Int>()
-        let nearBy = Array(
-            (report.location.nearBy + bookedCollections)
-                .filter { seen.insert($0.id).inserted }
-                .sorted { $0.distance < $1.distance }
-                .prefix(8)
-        )
+        //
+        // `duplicateCandidates` also drops the resolved ones, which matters
+        // most here: the deterministic layers dropped them already, so a closed
+        // report reaching this list was the only way one could still surface
+        // under "possibly already reported" — a warning against filing, made
+        // about a report the council has already closed.
+        let nearBy = (report.location.nearBy + bookedCollections)
+            .duplicateCandidates(limit: 8)
 
         guard hasAPIKey, !nearBy.isEmpty else {
             clearDuplicateJudgement()

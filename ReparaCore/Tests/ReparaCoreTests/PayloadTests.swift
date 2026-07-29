@@ -195,6 +195,67 @@ struct PayloadTests {
     }
 }
 
+// MARK: - Duplicate candidates
+
+/// What the model-facing duplicate check is allowed to read.
+///
+/// The deterministic layers drop resolved reports already, so this list was the
+/// last way a closed report could still reach somebody as "possibly already
+/// reported" — a warning against filing, raised about something the council has
+/// marked done. If it is marked done and the problem is still in the street,
+/// that is the case where a report is most needed.
+@Suite("Duplicate candidates")
+struct DuplicateCandidateTests {
+
+    /// Both sources at once, which is the list the judge actually reads: the
+    /// same-type neighbours from `prepare`, plus the cross-type collection
+    /// requests. Each fixture contributes one resolved entry.
+    private func bothSources() async throws -> [NearByOccurrence] {
+        let (sameType, _) = try Fixture.client(returning: "geo-attributes-building")
+        let report = try await Submitter(client: sameType).prepare(
+            type: .litter, at: Projection.reference.wgs84, descricao: "x")
+
+        let (crossType, _) = try Fixture.client(perType: [256: "geo-attributes-monstros"])
+        let search = try await Geo.nearBy(
+            crossType, around: Projection.reference.wgs84, tipoIds: [256])
+
+        return report.location.nearBy + search.found
+    }
+
+    @Test("resolved reports are not offered as duplicates")
+    func resolvedAreDropped() async throws {
+        let candidates = try await bothSources().duplicateCandidates(limit: 8)
+
+        #expect(candidates.allSatisfy { !$0.isResolved })
+        #expect(candidates.map(\.numero) == ["OCO/00100/2000", "OCO/00000/2000", "OCO/00001/2000"])
+    }
+
+    /// The resolved neighbour sits 14 m out, between the two open ones. Dropping
+    /// it after the cap rather than before would spend a slot on it and push an
+    /// open report off the end — the model would then be comparing against a
+    /// closed report instead of the live one it should have seen.
+    @Test("they are dropped before the cap, not after")
+    func droppedBeforeTheCap() async throws {
+        let all = try await bothSources().sorted { $0.distance < $1.distance }
+        let resolved = try #require(all.first { $0.isResolved })
+        #expect(Int(resolved.distance.rounded()) == 14)
+        #expect(all.prefix(2).contains { $0.isResolved }, "it is inside a cap of two")
+
+        let candidates = try await bothSources().duplicateCandidates(limit: 2)
+        #expect(candidates.map(\.numero) == ["OCO/00100/2000", "OCO/00000/2000"])
+    }
+
+    @Test("one row per occurrence, nearest-first")
+    func dedupedAndSorted() async throws {
+        let doubled = try await bothSources()
+        let candidates = (doubled + doubled).duplicateCandidates(limit: 8)
+
+        #expect(Set(candidates.map(\.id)).count == candidates.count)
+        let distances = candidates.map(\.distance)
+        #expect(distances == distances.sorted())
+    }
+}
+
 // MARK: - House numbers
 
 @Suite("House numbers")

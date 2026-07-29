@@ -269,9 +269,9 @@ struct Drafter {
         You are checking whether a problem somebody is about to report to Lisbon's city council \
         has already been reported by someone else.
 
-        You get the new report, and a numbered list of reports already open or recently closed \
-        nearby with how far away each one is. Decide which of them, if any, describe the same \
-        physical problem in the same place.
+        You get the new report, and a numbered list of reports that are still open nearby, with \
+        how far away each one is. Decide which of them, if any, describe the same physical \
+        problem in the same place.
 
         Compare what is described, not which category it was filed under. The same problem is \
         often filed under different report types — a damaged road surface and a hole in the \

@@ -252,6 +252,10 @@ struct ReviewView: View {
     /// same-type-within-50 m check from `ReparaCore`, and anything the model
     /// flagged after reading the descriptions. The second catches the same
     /// problem filed under a different type, which the first cannot see.
+    ///
+    /// Both are open reports only. A report the council has closed is not an
+    /// argument against filing — if the thing is still there, it is an argument
+    /// for it — so neither source offers one here.
     @ViewBuilder private var duplicatesSection: some View {
         let geometric = model.prepared?.possibleDuplicates ?? []
         let flagged = model.flaggedDuplicates.filter { candidate in
@@ -274,7 +278,7 @@ struct ReviewView: View {
                 Label("Possibly already reported", systemImage: "exclamationmark.2")
                     .foregroundStyle(.orange)
             } footer: {
-                Text("A duplicate wastes a worker's trip — check whether one of these is already your problem. Open reports of the same type within \(Int(Submitter.duplicateRadiusMetres)) m are listed automatically; \(model.providerName) reads the descriptions of those and of anything found under a related type, because the same problem is often filed under a different one.")
+                Text("A duplicate wastes a worker's trip — check whether one of these is already your problem. Open reports of the same type within \(Int(Submitter.duplicateRadiusMetres)) m are listed automatically; \(model.providerName) reads the descriptions of those and of anything still open under a related type, because the same problem is often filed under a different one. Reports the council has already closed are left out — if the problem is still there, it needs reporting again.")
             }
         }
     }

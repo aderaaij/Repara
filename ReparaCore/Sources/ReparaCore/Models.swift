@@ -266,6 +266,30 @@ extension Array where Element == NearByOccurrence {
     public func stripped(relativeTo origin: PtTm06) -> [NearByOccurrence] {
         map { $0.withDistance(from: origin) }.sorted { $0.distance < $1.distance }
     }
+
+    /// The neighbours worth asking "is this the same problem?" about: still
+    /// open, one row per occurrence, nearest-first, capped at `limit`.
+    ///
+    /// **Resolved reports are dropped**, for the reason `Submitter.prepare` and
+    /// the collection check drop them: "somebody already reported this" is only
+    /// an argument against filing while somebody is still coming. Once the
+    /// council has closed it and the problem is still in the street, that is
+    /// precisely when it needs reporting again — so showing a closed report
+    /// under a duplicate warning argues against a report that should be filed.
+    ///
+    /// Dropping them before the cap rather than after also stops a closed
+    /// report from taking a slot the caller was saving for an open one.
+    ///
+    /// The cap is the caller's, because it is a property of what the prompt
+    /// carries rather than of the data.
+    public func duplicateCandidates(limit: Int) -> [NearByOccurrence] {
+        var seen = Set<Int>()
+        return Array(
+            filter { !$0.isResolved && seen.insert($0.id).inserted }
+                .sorted { $0.distance < $1.distance }
+                .prefix(limit)
+        )
+    }
 }
 
 // MARK: - Submission payload
