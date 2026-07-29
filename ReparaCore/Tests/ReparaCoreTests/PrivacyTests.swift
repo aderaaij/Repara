@@ -75,9 +75,30 @@ struct PrivacyTests {
         #expect(Projection.isInLisbon(first.point))
     }
 
-    /// Whatever the app sends to Claude to help judge duplicates must be built
-    /// from the stripped type. A third party's name and email in a prompt is a
-    /// disclosure to a third party.
+    /// The browse screen reads the same array through a different door, and a
+    /// second entry point is exactly how a boundary like this usually erodes.
+    /// It goes through the same decode, so it inherits the same stripping — this
+    /// asserts it, so that "browsing needs the reporter's name" would have to
+    /// break a test that says why it must not.
+    @Test("browsing does not widen the boundary")
+    func browsingDropsIdentityToo() async throws {
+        let (client, _) = try Fixture.client(returning: "geo-attributes-building")
+        let found = try await Geo.nearBy(
+            client, around: Projection.reference.wgs84, tipoId: 262)
+
+        let encoder = JSONEncoder()
+        encoder.outputFormatting = [.sortedKeys]
+        let serialised = String(
+            decoding: try encoder.encode(found.map(Snapshot.init)), as: UTF8.self)
+
+        #expect(!serialised.contains("@"), "no email-like string may survive browsing either")
+        #expect(!serialised.localizedCaseInsensitiveContains("fulano"))
+        #expect(serialised.contains("OCO"), "but the reports themselves must still arrive")
+    }
+
+    /// Whatever the app sends a model provider to help judge duplicates must be
+    /// built from the stripped type. A third party's name and email in a prompt
+    /// is a disclosure to a third party, whichever provider receives it.
     @Test("the Claude-facing summary of a neighbour carries no identity")
     func modelFacingSummary() throws {
         let decoded = try JSONDecoder().decode(

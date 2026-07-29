@@ -137,7 +137,7 @@ struct ReviewView: View {
 
             if let confidence = model.draftConfidence, confidence != .high {
                 Label(
-                    "Claude was \(confidence.rawValue) confidence about this type — worth a second look.",
+                    "\(model.providerName) was \(confidence.rawValue) confidence about this type — worth a second look.",
                     systemImage: "questionmark.circle"
                 )
                 .font(.footnote)
@@ -183,7 +183,7 @@ struct ReviewView: View {
     // MARK: Duplicates
 
     /// Two sources, deliberately merged into one section: the deterministic
-    /// same-type-within-50 m check from `ReparaCore`, and anything Claude
+    /// same-type-within-50 m check from `ReparaCore`, and anything the model
     /// flagged after reading the descriptions. The second catches the same
     /// problem filed under a different type, which the first cannot see.
     @ViewBuilder private var duplicatesSection: some View {
@@ -204,7 +204,7 @@ struct ReviewView: View {
                 Label("Possibly already reported", systemImage: "exclamationmark.2")
                     .foregroundStyle(.orange)
             } footer: {
-                Text("A duplicate wastes a worker's trip — check whether one of these is already your problem. Open reports of the same type within 50 m are listed automatically; Claude also reads the descriptions, because the same problem is often filed under a different type.")
+                Text("A duplicate wastes a worker's trip — check whether one of these is already your problem. Open reports of the same type within 50 m are listed automatically; \(model.providerName) also reads the descriptions, because the same problem is often filed under a different type.")
             }
         }
     }

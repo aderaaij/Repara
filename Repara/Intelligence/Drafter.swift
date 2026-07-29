@@ -1,75 +1,44 @@
 import Foundation
 import ReparaCore
 
-/// One Claude API call per report. Not an agent, not tool use, not MCP.
+/// One model call per report. Not an agent, not tool use, not MCP.
 ///
 /// In goes the photo, the bundled type list and whatever the user said in any
 /// language. Out comes a validated `{tipo_id, descricao}` — the description in
 /// Portuguese, because a council worker reads it.
 ///
-/// There is no official Anthropic Swift SDK, so this is `URLSession` against
-/// the Messages API directly.
+/// **Which service answers is not this file's business.** Everything here is
+/// the part that stays the same whoever does: the prompts, the schemas, and
+/// the validation that turns a plausible-looking reply into something safe to
+/// file. `ModelProvider` owns the wire format; see `ModelSettings` for the
+/// selected provider and its models.
 struct Drafter {
 
     // MARK: Configuration
 
-    /// This is a narrow structured-extraction task, so `claude-sonnet-5` is
-    /// worth measuring against this once it works — likely indistinguishable
-    /// here and cheaper per report.
-    static let model = "claude-opus-5"
-
     /// Picking the wrong one of 127 types routes the report to the wrong
-    /// council department, so this starts high. `medium` and `low` are strong
-    /// on this model and worth measuring — a report costs a few cents either
-    /// way, and they get filed about once a fortnight.
-    static let effort = "high"
+    /// council department, so this starts high. `medium` and `low` are worth
+    /// measuring — a report costs a few cents either way, and they get filed
+    /// about once a fortnight.
+    static let effort = ModelRequest.Effort.high
 
-    /// Thinking is **on by default** on Claude Opus 5, and `max_tokens` caps
-    /// thinking plus response text together. The answer itself is a couple of
-    /// hundred tokens; the rest of this is headroom so a long deliberation
-    /// cannot truncate the JSON.
+    /// Reasoning tokens count against the output cap on every provider. The
+    /// answer itself is a couple of hundred tokens; the rest of this is
+    /// headroom so a long deliberation cannot truncate the JSON.
     static let maxTokens = 8000
-
-    private static let endpoint = URL(string: "https://api.anthropic.com/v1/messages")!
-    private static let apiVersion = "2023-06-01"
-
-    /// Server-side fallback: if the safety classifiers decline a request, the
-    /// API re-runs it on the recommended model rather than handing back a
-    /// refusal. Cheap insurance for someone standing in the street with a
-    /// photo — a spurious refusal there is a dead end, not an inconvenience.
-    private static let fallbackBeta = "server-side-fallback-2026-07-01"
 
     // MARK: Errors
 
+    /// Only the failures that are about *this app's* rules. Everything to do
+    /// with reaching a model — missing keys, refusals, truncation, HTTP — is
+    /// `ModelError`, so that adding a provider does not add an error type.
     enum DrafterError: Error, CustomStringConvertible {
-        case missingAPIKey
-        case refused(category: String?, explanation: String?)
-        case truncated
-        case http(status: Int, body: String)
-        case malformed(String)
         case unknownType(Int)
 
         var description: String {
             switch self {
-            case .missingAPIKey:
-                return """
-                    No Claude API key stored. Add one in Settings — it stays in the Keychain \
-                    and never leaves this phone except to api.anthropic.com.
-                    """
-            case let .refused(category, explanation):
-                let detail = [category, explanation].compactMap { $0 }.joined(separator: ": ")
-                return """
-                    Claude declined to draft this report\(detail.isEmpty ? "" : " (\(detail))"). \
-                    Write the description yourself and pick a type — everything else still works.
-                    """
-            case .truncated:
-                return "The draft was cut off before it finished. Try again."
-            case let .http(status, body):
-                return "The Claude API returned \(status). \(body.prefix(200))"
-            case let .malformed(detail):
-                return "Could not read Claude's reply: \(detail)"
             case let .unknownType(id):
-                return "Claude suggested report type \(id), which is not in the bundled list."
+                return "The model suggested report type \(id), which is not in the bundled list."
             }
         }
     }
@@ -114,114 +83,38 @@ struct Drafter {
         address: String?,
         taxonomy: Taxonomy = .bundled
     ) async throws -> Draft {
-        let body: [String: Any] = [
-            "model": Self.model,
-            "max_tokens": Self.maxTokens,
-            "fallbacks": "default",
-            "system": Self.systemPrompt,
-            "output_config": [
-                "effort": Self.effort,
-                "format": [
-                    "type": "json_schema",
-                    "schema": Self.schema(for: taxonomy),
-                ],
-            ],
-            "messages": [
-                [
-                    "role": "user",
-                    "content": [
-                        [
-                            "type": "image",
-                            "source": [
-                                "type": "base64",
-                                "media_type": "image/jpeg",
-                                "data": photo.base64EncodedString(),
-                            ],
-                        ],
-                        [
-                            "type": "text",
-                            "text": Self.userPrompt(
-                                userText: userText,
-                                address: address,
-                                taxonomy: taxonomy
-                            ),
-                        ],
-                    ],
-                ]
-            ],
-        ]
+        let selected = ModelSettings.provider
+        let request = ModelRequest(
+            model: ModelSettings.draftModel(for: selected),
+            system: Self.systemPrompt,
+            userText: Self.userPrompt(
+                userText: userText,
+                address: address,
+                taxonomy: taxonomy
+            ),
+            image: photo,
+            schema: Self.schema(for: taxonomy),
+            schemaName: "repara_draft",
+            maxTokens: Self.maxTokens,
+            effort: Self.effort,
+            // Only the draft asks for a fallback: a refusal here strands
+            // somebody in the street, whereas a refused judgement just clears
+            // the verdict. Providers without one ignore the flag.
+            allowFallbacks: true
+        )
 
-        return try Self.parse(
-            try await Self.send(body, betas: [Self.fallbackBeta]), taxonomy: taxonomy)
-    }
-
-    // MARK: Transport
-
-    /// - Parameter betas: Sent as `anthropic-beta`, and only when non-empty —
-    ///   a beta header names a request shape, so it belongs on the calls that
-    ///   actually use that shape rather than on every call by default.
-    private static func send(_ body: [String: Any], betas: [String]) async throws -> Data {
-        guard let apiKey = Keychain.get(.claudeAPIKey), !apiKey.isEmpty else {
-            throw DrafterError.missingAPIKey
-        }
-
-        var request = URLRequest(url: endpoint)
-        request.httpMethod = "POST"
-        request.setValue(apiKey, forHTTPHeaderField: "x-api-key")
-        request.setValue(apiVersion, forHTTPHeaderField: "anthropic-version")
-        request.setValue("application/json", forHTTPHeaderField: "content-type")
-        if !betas.isEmpty {
-            request.setValue(betas.joined(separator: ","), forHTTPHeaderField: "anthropic-beta")
-        }
-        request.timeoutInterval = 120
-        request.httpBody = try JSONSerialization.data(withJSONObject: body)
-
-        let (data, response) = try await URLSession.shared.data(for: request)
-        guard let http = response as? HTTPURLResponse else {
-            throw DrafterError.malformed("non-HTTP response")
-        }
-        guard (200..<300).contains(http.statusCode) else {
-            throw DrafterError.http(
-                status: http.statusCode,
-                body: String(data: data.prefix(2000), encoding: .utf8) ?? ""
-            )
-        }
-        return data
-    }
-
-    /// The text of a structured-output response, after the checks that have to
-    /// happen before `content` can be indexed.
-    ///
-    /// Check `stop_reason` before reading content: on a refusal the content
-    /// array is empty or partial, and indexing it unconditionally crashes.
-    private static func structuredText(_ data: Data) throws -> String {
-        guard let root = try JSONSerialization.jsonObject(with: data) as? [String: Any] else {
-            throw DrafterError.malformed("response was not a JSON object")
-        }
-
-        let stopReason = root["stop_reason"] as? String
-        if stopReason == "refusal" {
-            let details = root["stop_details"] as? [String: Any]
-            throw DrafterError.refused(
-                category: details?["category"] as? String,
-                explanation: details?["explanation"] as? String
-            )
-        }
-        if stopReason == "max_tokens" { throw DrafterError.truncated }
-
-        guard let content = root["content"] as? [[String: Any]],
-            let text = content.first(where: { $0["type"] as? String == "text" })?["text"] as? String
-        else {
-            throw DrafterError.malformed("no text block in the response")
-        }
-        return text
+        // `selected` is read once and used for both the model id and the
+        // transport: resolving `ModelSettings.provider` twice could, in
+        // principle, send one provider's model id to another's endpoint.
+        let text = try await selected.makeProvider().complete(request)
+        return try Self.parse(text, taxonomy: taxonomy, provider: selected)
     }
 
     // MARK: Response
 
-    private static func parse(_ data: Data, taxonomy: Taxonomy) throws -> Draft {
-        let text = try structuredText(data)
-
+    private static func parse(
+        _ text: String, taxonomy: Taxonomy, provider: ModelProviderID
+    ) throws -> Draft {
         struct Payload: Decodable {
             let tipo_id: Int
             let descricao: String
@@ -232,7 +125,7 @@ struct Drafter {
         do {
             payload = try JSONDecoder().decode(Payload.self, from: Data(text.utf8))
         } catch {
-            throw DrafterError.malformed(String(describing: error))
+            throw ModelError.malformed(provider, String(describing: error))
         }
 
         // The schema constrains tipo_id to the bundled ids, so this should be
@@ -290,31 +183,29 @@ struct Drafter {
     ) async throws -> DuplicateVerdict {
         guard !nearBy.isEmpty else { return DuplicateVerdict(matches: [], reason: nil) }
 
-        // No `fallbacks` here, unlike the draft. Server-side fallback is
-        // documented for the Opus tier, and a refusal on this call is not a
-        // dead end anyway: `AppModel` clears the verdict, the deterministic
-        // 50 m check still stands, and filing is unaffected.
-        let body: [String: Any] = [
-            "model": Self.judgeModel,
-            "max_tokens": Self.judgeMaxTokens,
-            "system": Self.judgeSystemPrompt,
-            "output_config": [
-                "effort": Self.judgeEffort,
-                "format": [
-                    "type": "json_schema",
-                    "schema": Self.judgeSchema,
-                ],
-            ],
-            "messages": [
-                [
-                    "role": "user",
-                    "content": Self.judgePrompt(
-                        descricao: descricao, type: type, address: address, nearBy: nearBy),
-                ]
-            ],
-        ]
+        // Read once and used for both the model id and the transport, so the
+        // two can never come from different providers.
+        let provider = ModelSettings.provider
+        let request = ModelRequest(
+            model: ModelSettings.judgeModel(for: provider),
+            system: Self.judgeSystemPrompt,
+            userText: Self.judgePrompt(
+                descricao: descricao, type: type, address: address, nearBy: nearBy),
+            // Text only. A photograph would tell the model nothing the
+            // descriptions do not, and it doubles the cost of a call made
+            // every time the pin moves onto a new set of reports.
+            image: nil,
+            schema: Self.judgeSchema,
+            schemaName: "repara_duplicates",
+            maxTokens: Self.judgeMaxTokens,
+            effort: Self.judgeEffort,
+            // No fallback here, unlike the draft: a refusal on this call is
+            // not a dead end. `AppModel` clears the verdict, the deterministic
+            // 50 m check still stands, and filing is unaffected.
+            allowFallbacks: false
+        )
 
-        let text = try Self.structuredText(try await Self.send(body, betas: []))
+        let text = try await provider.makeProvider().complete(request)
 
         struct Payload: Decodable {
             let duplicate_of: [Int]
@@ -324,7 +215,7 @@ struct Drafter {
         do {
             payload = try JSONDecoder().decode(Payload.self, from: Data(text.utf8))
         } catch {
-            throw DrafterError.malformed(String(describing: error))
+            throw ModelError.malformed(provider, String(describing: error))
         }
 
         // A schema cannot express "a valid position in the list", so anything
@@ -338,16 +229,16 @@ struct Drafter {
         )
     }
 
-    /// Sonnet rather than the draft's Opus, at the user's direction. This is a
-    /// short text comparison of a few sentences against at most eight more —
+    /// A tier below the draft's, at the user's direction, on whichever
+    /// provider is selected — see `ModelProviderID.defaultJudgeModel`. This is
+    /// a short text comparison of a few sentences against at most eight more —
     /// far narrower than picking one of 127 types from a photograph — and its
     /// wrong answers are the cheap kind to notice, because the reports it is
     /// comparing sit on screen next to its verdict.
-    static let judgeModel = "claude-sonnet-5"
-
-    /// Likewise this does not need the draft's `high`. `low` is worth measuring
+    ///
+    /// Likewise it does not need the draft's `high`. `low` is worth measuring
     /// against it.
-    static let judgeEffort = "medium"
+    static let judgeEffort = ModelRequest.Effort.medium
 
     /// Thinking counts against this too, and the answer is a handful of
     /// integers, so the rest is headroom.

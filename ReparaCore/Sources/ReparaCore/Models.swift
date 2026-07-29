@@ -179,7 +179,7 @@ public struct GeoAttributes: Decodable, Sendable {
 /// for anything this app does, so it is dropped here — by decoding only the
 /// listed keys, which makes retaining the rest structurally impossible rather
 /// than merely discouraged. Nothing upstream ever holds the raw shape, so there
-/// is no raw shape to leak into a log, a cache, or a Claude prompt.
+/// is no raw shape to leak into a log, a cache, or a model prompt.
 ///
 /// See `PrivacyTests`, which asserts that no `@` survives.
 public struct NearByOccurrence: Decodable, Sendable, Hashable, Identifiable {
@@ -244,9 +244,10 @@ public struct NearByOccurrence: Decodable, Sendable, Hashable, Identifiable {
         estado.range(of: "resolvid", options: .caseInsensitive) != nil
     }
 
-    /// The only representation of a neighbour that may be sent to the Claude
-    /// API. Built from this type's fields, which by construction contain no
-    /// reporter identity — see `PrivacyTests.modelFacingSummary`.
+    /// The only representation of a neighbour that may be sent to a model
+    /// provider — whichever one is selected. Built from this type's fields,
+    /// which by construction contain no reporter identity — see
+    /// `PrivacyTests.modelFacingSummary`.
     public var promptSummary: String {
         let metres = distance.isFinite ? "\(Int(distance.rounded())) m away" : "nearby"
         let text = descricao?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""

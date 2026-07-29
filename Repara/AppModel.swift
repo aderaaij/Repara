@@ -20,6 +20,10 @@ final class AppModel {
     let location = LocationProvider()
     let auth: Auth
     let submitter: Submitter
+    /// Read-only browsing of what has already been reported. Held here for its
+    /// lifetime — leaving the screen and coming back must not re-buy the answer —
+    /// but it is nothing to do with the report being built below.
+    let browse: NearbyBrowser
     private let drafter = Drafter()
 
     init() {
@@ -27,6 +31,7 @@ final class AppModel {
         self.client = client
         self.auth = Auth(client: client)
         self.submitter = Submitter(client: client)
+        self.browse = NearbyBrowser(client: client)
     }
 
     // MARK: Flow
@@ -58,7 +63,8 @@ final class AppModel {
 
     /// The full-resolution JPEG that goes to the council.
     var photo: Data?
-    /// The downscaled copy that goes to Claude. Never sent to the portal.
+    /// The downscaled copy that goes to the model provider. Never sent to the
+    /// portal.
     private var photoForModel: Data?
 
     var userText = ""
@@ -87,7 +93,13 @@ final class AppModel {
         set { UserDefaults.standard.set(newValue == .live, forKey: "liveSubmit") }
     }
 
-    var hasAPIKey: Bool { Keychain.get(.claudeAPIKey)?.isEmpty == false }
+    /// Whether the *selected* provider has a key. Keys for the others may well
+    /// be stored — switching provider must not silently keep drafting with the
+    /// previous one's key.
+    var hasAPIKey: Bool { ModelSettings.hasAPIKey }
+
+    /// For the copy that tells the user which key is missing.
+    var providerName: String { ModelSettings.provider.displayName }
 
     // MARK: Launch
 
@@ -139,6 +151,9 @@ final class AppModel {
         // it open would sit a Settings form on top of the sign-up gate — and
         // leaving the flag set would spring it open again on the next sign-in.
         showingSettings = false
+        // Someone else's neighbourhood should not still be in memory behind the
+        // welcome screen.
+        browse.reset()
         startOver()
     }
 
@@ -150,7 +165,7 @@ final class AppModel {
         pin = location.coordinate
     }
 
-    /// One Claude call: photo in, `{tipo_id, descricao}` out — both editable on
+    /// One model call: photo in, `{tipo_id, descricao}` out — both editable on
     /// the Review screen afterwards.
     func makeDraft() async {
         guard let photoForModel else { return }
@@ -227,7 +242,7 @@ final class AppModel {
 
     // MARK: Duplicate judgement
 
-    /// Nearby reports Claude thinks describe the same problem, and why.
+    /// Nearby reports the model thinks describe the same problem, and why.
     ///
     /// Separate from `PreparedReport.possibleDuplicates`, which is the
     /// deterministic check: same type id, within 50 m, still open. That one
@@ -239,7 +254,7 @@ final class AppModel {
     private var judgeTask: Task<Void, Never>?
     private var lastJudgedKey: String?
 
-    /// The second Claude call, made only when there is something to compare
+    /// The second model call, made only when there is something to compare
     /// against.
     ///
     /// It adds no load on the municipal service — `prepare` already fetched
@@ -351,6 +366,7 @@ final class AppModel {
         case let error as SubmitError: return error.description
         case let error as TaxonomyError: return error.description
         case let error as ProjectionError: return error.description
+        case let error as ModelError: return error.description
         case let error as Drafter.DrafterError: return error.description
         default: return error.localizedDescription
         }

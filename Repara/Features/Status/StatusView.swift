@@ -42,8 +42,6 @@ struct StatusView: View {
                 )
             }
         }
-        .navigationTitle("My reports")
-        .navigationBarTitleDisplayMode(.inline)
         .refreshable { await load() }
         .task { await load() }
     }

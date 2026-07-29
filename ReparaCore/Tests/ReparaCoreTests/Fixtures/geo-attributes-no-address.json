@@ -1,0 +1,51 @@
+{
+  "_note": "A point that resolved to no address at all — the middle of a square, a park, a river bank. `morada` comes back empty, which makes `Geo.resolve` throw noAddressFound, but the portal still answers with what has been reported nearby. Browsing has to work here: 'what has been reported around this park' is a fair question. Synthetic throughout; the names use .invalid, reserved by RFC 2606.",
+  "morada": [],
+  "freguesia": "121",
+  "freguesia_nome": "Freguesia Exemplo",
+  "PFM": "-1",
+  "UIT": "59",
+  "EVENE": "-1",
+  "COD_LOCAL": "00000",
+  "nearBy": [
+    {
+      "id": 1000010,
+      "numero": "OCO/00010/2000",
+      "requerente": "Fulano De Tal",
+      "email": "FULANO.DETAL@EXAMPLE.INVALID",
+      "criador_id": 999990,
+      "logedUser": "UTILIZADOR@EXAMPLE.INVALID",
+      "local": "Rua Exemplo 3, 1000-000 Lisboa",
+      "referencia": null,
+      "descricao": "mais longe",
+      "tipo": "Sacos ou outros lixos abandonados",
+      "tipo_id": 262,
+      "geo_x": -87297.1457760187,
+      "geo_y": -106200.89242727536,
+      "area": "Higiene Urbana",
+      "area_oco_id": 10,
+      "freg_descricao": "Freguesia Exemplo",
+      "state": "Em curso",
+      "naminharua_estado": "Em curso"
+    },
+    {
+      "id": 1000011,
+      "numero": "OCO/00011/2000",
+      "requerente": "Beltrano De Tal",
+      "email": "BELTRANO.DETAL@EXAMPLE.INVALID",
+      "criador_id": 999991,
+      "local": "Rua Exemplo 5, 1000-000 Lisboa",
+      "referencia": null,
+      "descricao": "mesmo ao lado",
+      "tipo": "Sacos ou outros lixos abandonados",
+      "tipo_id": 262,
+      "geo_x": -87261.1457760187,
+      "geo_y": -106164.89242727536,
+      "area": "Higiene Urbana",
+      "area_oco_id": 10,
+      "freg_descricao": "Freguesia Exemplo",
+      "state": "Em curso",
+      "naminharua_estado": "Em curso"
+    }
+  ]
+}
