@@ -4,8 +4,8 @@ An unofficial iOS client for **Na Minha Rua LX**, Lisbon's municipal
 problem-reporting portal. Ported from the TypeScript client
 [`naminharua-client`](https://github.com/aderaaij/naminharua-client), checked
 out locally at `../../minharua`; `docs/IOS-APP-HANDOFF.md` is the specification
-it was built from. When this repo and that document disagree, check the
-TypeScript — it has run against the live portal.
+it was built from, kept locally and untracked. When this repo and that document
+disagree, check the TypeScript — it has run against the live portal.
 
 ## The one rule
 

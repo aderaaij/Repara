@@ -18,6 +18,9 @@ xcuserdata/
 # else happens to be checked out next to this repo.
 .claude/settings.local.json
 
+# Working notes and screenshots — kept locally, not published.
+docs/
+
 # Secrets. The portal credentials and the Claude API key live in the Keychain,
 # never in the bundle, a plist, or source — but a stray .env would defeat that.
 .env
