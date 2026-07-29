@@ -17,7 +17,11 @@ struct ReportsView: View {
 
     /// Starts on Mine, which costs one request the user has already paid for by
     /// signing in. Nearby only asks the council anything once it is chosen.
-    @State private var tab: Tab = .mine
+    @State private var tab: Tab
+
+    init(initialTab: Tab = .mine) {
+        _tab = State(initialValue: initialTab)
+    }
 
     var body: some View {
         VStack(spacing: 0) {
