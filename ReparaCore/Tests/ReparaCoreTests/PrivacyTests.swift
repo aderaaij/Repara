@@ -96,9 +96,9 @@ struct PrivacyTests {
         #expect(serialised.contains("OCO"), "but the reports themselves must still arrive")
     }
 
-    /// Whatever the app sends to Claude to help judge duplicates must be built
-    /// from the stripped type. A third party's name and email in a prompt is a
-    /// disclosure to a third party.
+    /// Whatever the app sends a model provider to help judge duplicates must be
+    /// built from the stripped type. A third party's name and email in a prompt
+    /// is a disclosure to a third party, whichever provider receives it.
     @Test("the Claude-facing summary of a neighbour carries no identity")
     func modelFacingSummary() throws {
         let decoded = try JSONDecoder().decode(

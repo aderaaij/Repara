@@ -8,7 +8,8 @@ import UIKit
 /// plenty to identify a dumped mattress and costs a fraction of the tokens.
 enum PhotoScaler {
 
-    /// The long edge Claude's vision pipeline is happy with. Larger costs more
+    /// The long edge every provider's vision pipeline is happy with, and the
+    /// tightest of the three, so one size serves all. Larger costs more
     /// tokens without helping identify what is in a street photograph.
     static let modelLongEdge: CGFloat = 1568
 
@@ -26,7 +27,7 @@ enum PhotoScaler {
         image.jpegData(compressionQuality: councilQuality)
     }
 
-    /// A downscaled JPEG for the Claude API.
+    /// A downscaled JPEG for the model provider.
     static func forModel(_ image: UIImage) -> Data? {
         downscaled(image, longEdge: modelLongEdge).jpegData(compressionQuality: modelQuality)
     }

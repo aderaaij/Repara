@@ -93,7 +93,7 @@ struct DraftingView: View {
                 .controlSize(.large)
             Text("Reading the photo…")
                 .font(.headline)
-            Text("Claude picks the report type and drafts the Portuguese. You will see and can edit both before anything is filed.")
+            Text("\(model.providerName) picks the report type and drafts the Portuguese. You will see and can edit both before anything is filed.")
                 .font(.footnote)
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)

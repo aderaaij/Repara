@@ -51,7 +51,7 @@ struct CaptureView: View {
             } header: {
                 Text("Photo")
             } footer: {
-                Text("The council gets the full-resolution original — that is the evidence a worker acts on. A smaller copy goes to Claude to identify what it is.")
+                Text("The council gets the full-resolution original — that is the evidence a worker acts on. A smaller copy goes to \(model.providerName) to identify what it is.")
             }
 
             Section {
@@ -64,7 +64,7 @@ struct CaptureView: View {
             } header: {
                 Text("What is wrong?")
             } footer: {
-                Text("Any language. Claude translates it into the Portuguese a council worker reads, and you see that text before anything is filed.")
+                Text("Any language. \(model.providerName) translates it into the Portuguese a council worker reads, and you see that text before anything is filed.")
             }
 
             Section {
@@ -84,7 +84,7 @@ struct CaptureView: View {
                     .frame(maxWidth: .infinity)
             } footer: {
                 if !model.hasAPIKey {
-                    Text("Add a Claude API key in Settings to draft automatically, or fill the report in yourself.")
+                    Text("Add a \(model.providerName) API key in Settings to draft automatically, or fill the report in yourself.")
                         .foregroundStyle(.orange)
                 }
             }

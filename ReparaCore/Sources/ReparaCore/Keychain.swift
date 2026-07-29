@@ -3,17 +3,26 @@ import Security
 
 /// Secret storage.
 ///
-/// Three secrets exist in this app and all three live here: the portal email
-/// and password, and the Claude API key. None of them may be baked into the
-/// bundle, a plist, or source — the API key in particular is extractable from a
-/// shipped binary, which is why the user types it in once rather than the app
-/// carrying it.
+/// Every secret in this app lives here: the portal email and password, and one
+/// API key per model provider. None of them may be baked into the bundle, a
+/// plist, or source — the API keys in particular are extractable from a shipped
+/// binary, which is why the user types one in once rather than the app carrying
+/// it.
+///
+/// The provider keys are account names, not model code: `ReparaCore` still
+/// knows nothing about any model API, and the calls themselves live in
+/// `Repara/Intelligence/`. A key is kept per provider so switching between them
+/// in Settings does not make the user find their key again.
 public enum Keychain {
 
     public enum Key: String, Sendable, CaseIterable {
         case portalUsername = "portal-username"
         case portalPassword = "portal-password"
+        /// Raw value predates the other two providers; renaming it would strand
+        /// the key already in the Keychain of anyone running the app.
         case claudeAPIKey = "claude-api-key"
+        case openAIAPIKey = "openai-api-key"
+        case geminiAPIKey = "gemini-api-key"
     }
 
     public enum KeychainError: Error, CustomStringConvertible {

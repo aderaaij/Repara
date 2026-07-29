@@ -6,13 +6,17 @@ struct SettingsView: View {
     @Environment(\.dismiss) private var dismiss
 
     @State private var apiKey = ""
-    @State private var savedKey = Keychain.get(.claudeAPIKey)?.isEmpty == false
+    @State private var provider = ModelSettings.provider
+    @State private var savedKey = ModelSettings.hasAPIKey
+    @State private var draftModel = ""
+    @State private var judgeModel = ""
 
     var body: some View {
         NavigationStack {
             Form {
                 portalSection
-                claudeSection
+                providerSection
+                modelSection
                 submitModeSection
                 aboutSection
             }
@@ -20,9 +24,17 @@ struct SettingsView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Done") { dismiss() }
+                    Button("Done") {
+                        saveModelOverrides()
+                        dismiss()
+                    }
                 }
             }
+            .onAppear(perform: loadModelOverrides)
+            // Swiping the sheet away is not "cancel" — it is how most people
+            // close it, and a model id typed but not submitted would otherwise
+            // be silently discarded.
+            .onDisappear(perform: saveModelOverrides)
         }
     }
 
@@ -47,32 +59,112 @@ struct SettingsView: View {
         }
     }
 
-    // MARK: Claude
+    // MARK: Provider
 
-    @ViewBuilder private var claudeSection: some View {
+    /// The drafting and duplicate-checking calls are the same narrow job
+    /// whoever answers them, so which service that is belongs to the user.
+    /// A key is stored per provider, so switching back does not mean finding
+    /// the key again.
+    @ViewBuilder private var providerSection: some View {
         Section {
+            Picker("Provider", selection: $provider) {
+                ForEach(ModelProviderID.allCases) { candidate in
+                    Text(candidate.displayName).tag(candidate)
+                }
+            }
+            .onChange(of: provider) { previous, selected in
+                // The model fields still hold the previous provider's text;
+                // banking it first is what makes switching back and forth
+                // lossless.
+                ModelSettings.setDraftModel(draftModel, for: previous)
+                ModelSettings.setJudgeModel(judgeModel, for: previous)
+
+                ModelSettings.provider = selected
+                // Every field below is per-provider, so none of it survives
+                // the switch.
+                savedKey = ModelSettings.hasAPIKey
+                apiKey = ""
+                loadModelOverrides()
+            }
+
             if savedKey {
                 LabeledContent("API key", value: "Stored in Keychain")
                 Button("Remove key", role: .destructive) {
-                    try? Keychain.set(nil, for: .claudeAPIKey)
+                    try? Keychain.set(nil, for: provider.keychainKey)
                     savedKey = false
                 }
             } else {
-                SecureField("sk-ant-…", text: $apiKey)
+                SecureField(provider.apiKeyPlaceholder, text: $apiKey)
                     .textInputAutocapitalization(.never)
                     .autocorrectionDisabled()
                 Button("Save key") {
-                    try? Keychain.set(apiKey, for: .claudeAPIKey)
-                    savedKey = Keychain.get(.claudeAPIKey)?.isEmpty == false
+                    try? Keychain.set(apiKey, for: provider.keychainKey)
+                    savedKey = ModelSettings.hasAPIKey
                     apiKey = ""
                 }
                 .disabled(apiKey.isEmpty)
             }
         } header: {
-            Text("Claude")
+            Text("Drafting")
         } footer: {
-            Text("The key cannot be shipped inside the app — anyone could extract it from the bundle. Enter it once and it stays in the Keychain, which also keeps this app free of any server of its own.")
+            Text("""
+                Sent to \(provider.host): the downscaled photo, what you typed, the report-type \
+                list, and — for the duplicate check — the type, status, distance and public \
+                description of nearby reports. Never the name, email or reference number of \
+                whoever filed one of those.
+
+                The key cannot be shipped inside the app — anyone could extract it from the \
+                bundle. Enter it once and it stays in the Keychain, which also keeps this app \
+                free of any server of its own.
+                """)
         }
+    }
+
+    // MARK: Models
+
+    /// Free text rather than a menu because model names change faster than
+    /// this app ships. A default that goes stale has to be something you can
+    /// fix here, not a reason to wait for a release.
+    @ViewBuilder private var modelSection: some View {
+        Section {
+            LabeledContent("Drafting") {
+                TextField(provider.defaultDraftModel, text: $draftModel)
+                    .multilineTextAlignment(.trailing)
+                    .textInputAutocapitalization(.never)
+                    .autocorrectionDisabled()
+                    .onSubmit(saveModelOverrides)
+            }
+            LabeledContent("Duplicate check") {
+                TextField(provider.defaultJudgeModel, text: $judgeModel)
+                    .multilineTextAlignment(.trailing)
+                    .textInputAutocapitalization(.never)
+                    .autocorrectionDisabled()
+                    .onSubmit(saveModelOverrides)
+            }
+        } header: {
+            Text("\(provider.displayName) models")
+        } footer: {
+            Text("""
+                Leave these blank for the defaults shown. Drafting picks one of \
+                \(Taxonomy.bundled.types.count) report types from a photograph and routes the \
+                report to a council department, so it uses the stronger model; the duplicate \
+                check only compares a few sentences against the reports already nearby.
+                """)
+        }
+    }
+
+    private func saveModelOverrides() {
+        ModelSettings.setDraftModel(draftModel, for: provider)
+        ModelSettings.setJudgeModel(judgeModel, for: provider)
+    }
+
+    private func loadModelOverrides() {
+        // Blank when unset, so the placeholder shows the default rather than
+        // baking a stale id into the field the moment Settings is opened.
+        draftModel = ModelSettings.draftModel(for: provider) == provider.defaultDraftModel
+            ? "" : ModelSettings.draftModel(for: provider)
+        judgeModel = ModelSettings.judgeModel(for: provider) == provider.defaultJudgeModel
+            ? "" : ModelSettings.judgeModel(for: provider)
     }
 
     // MARK: Submit mode

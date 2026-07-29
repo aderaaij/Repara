@@ -35,7 +35,7 @@ against the dry-run payload instead.
 ## Layout
 
 ```
-ReparaCore/     SPM package — no UIKit, no SwiftUI, no LLM. 48 tests that run
+ReparaCore/     SPM package — no UIKit, no SwiftUI, no LLM. 57 tests that run
                 on a Mac with no device and no network.
   Projection    WGS84 ⇄ EPSG:3763, computed locally
   Models        wire shapes; the privacy boundary lives here
@@ -45,15 +45,15 @@ ReparaCore/     SPM package — no UIKit, no SwiftUI, no LLM. 48 tests that run
   Multipart     the body quirks
   Submit        payload assembly and the submission gate
 
-Repara/         the app — SwiftUI features, CoreLocation, one Claude call
+Repara/         the app — SwiftUI features, CoreLocation, the model calls
 ```
 
-`ReparaCore` must not import UIKit, SwiftUI or anything to do with the Claude
+`ReparaCore` must not import UIKit, SwiftUI or anything to do with a model
 API. It holds the parts that were expensive to learn and it needs to stay
 testable without a device.
 
 ```sh
-cd ReparaCore && swift test    # 48 tests, no network, no credentials
+cd ReparaCore && swift test    # 57 tests, no network, no credentials
 xcodebuild -project Repara.xcodeproj -scheme Repara \
   -destination 'generic/platform=iOS Simulator' build
 ```
@@ -65,9 +65,10 @@ macOS 15 so its tests run natively on a Mac.
 
 ## Secrets
 
-Three, all in the Keychain, none in the bundle or in source: the portal email
-and password (Welcome → I already have one) and a Claude API key (Settings). The
-key cannot ship inside the app — anyone could extract it from the bundle.
+All in the Keychain, none in the bundle or in source: the portal email and
+password (Welcome → I already have one), and one API key per model provider
+(Settings) — Claude, OpenAI and Gemini each keep their own, so switching between
+them does not mean finding the key again. A key cannot ship inside the app — anyone could extract it from the bundle.
 Entering it once also keeps the app free of any server of its own, so it works
 on cellular with no home server, VPN or sync folder in the path.
 
@@ -131,7 +132,7 @@ and the portal's Jersey backend deserialises into a POJO.
 everyone who filed each nearby report. `NearByOccurrence` decodes only the
 fields duplicate detection needs, so retaining the rest is **structurally
 impossible** rather than merely discouraged — there is no raw shape to leak into
-a log, a cache, or a Claude prompt. `PrivacyTests` asserts no `@` survives
+a log, a cache, or a model prompt. `PrivacyTests` asserts no `@` survives
 parsing. Only `promptSummary` is ever sent to the model.
 
 ### Type resolution
@@ -154,21 +155,29 @@ npm run nmr -- types --json \
 
 ---
 
-## The Claude call
+## The model call
 
-One request per report, `URLSession` against `POST /v1/messages` — not an agent,
-not tool use, not MCP, since there is no official Anthropic Swift SDK.
+One request per report, `URLSession` straight at the provider's endpoint — not
+an agent, not tool use, not MCP.
 
-- **`claude-opus-5` at high effort.** Picking the wrong one of 127 types routes
-  the report to the wrong department, so it starts high; cheaper models and
-  efforts are worth measuring.
+**The provider is the user's choice: Claude, OpenAI or Gemini, picked in
+Settings.** The two calls are the same narrow job whoever answers them, so
+`Drafter` owns the prompts, the schemas and the validation, and a `ModelProvider`
+owns one wire format each. Keys are stored per provider, and model ids are
+overridable free text — they go stale faster than this app ships.
+
+- **The strongest model the provider offers, at high effort.** Picking the wrong
+  one of 127 types routes the report to the wrong department, so it starts high;
+  cheaper models and efforts are worth measuring.
 - **Structured output** constrains `tipo_id` to an `enum` of the 127 bundled
   ids, so an invalid type is structurally impossible rather than merely
-  unlikely.
-- **Refusals are handled before reading content** — on `stop_reason: "refusal"`
-  the content array is empty or partial and indexing it would crash. Server-side
-  `fallbacks` is enabled so a spurious refusal re-runs rather than dead-ending
-  someone standing in the street.
+  unlikely — except on Gemini, whose schema dialect only honours `enum` on
+  strings. The id is resolved against the bundled taxonomy either way, which is
+  what makes that survivable.
+- **Refusals are handled before reading content** — a refused reply has no
+  content to index, whatever shape the provider signals it in. On Claude,
+  server-side `fallbacks` is enabled so a spurious refusal re-runs rather than
+  dead-ending someone standing in the street; the others have no equivalent.
 - **Two photo sizes, two purposes.** The model gets a copy downscaled to
   1568 px; the council gets the full-resolution original, because that is the
   evidence a worker acts on. Do not conflate them.
@@ -183,7 +192,7 @@ Someone in the street should never be blocked by the model.
 
 ## Status
 
-`swift test` passes 48 tests across 8 suites with no network. The projection
+`swift test` passes 57 tests across 10 suites with no network. The projection
 agrees with proj4 to 2.4 nm across Lisbon and the portal-offset negative test
 passes. The recorded submission is regenerated field-for-field from its
 coordinates. The app builds for the iOS 26 simulator and launches.
