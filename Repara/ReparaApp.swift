@@ -3,13 +3,41 @@ import SwiftUI
 
 @main
 struct ReparaApp: App {
-    @State private var model = AppModel()
+    #if DEBUG
+        @State private var model =
+            ScreenshotMode.isActive ? AppModel(session: ScreenshotMode.session) : AppModel()
+    #else
+        @State private var model = AppModel()
+    #endif
+
+    init() {
+        #if DEBUG
+            // Before any view is built — `SettingsView` reads the selected
+            // provider into `@State` the moment it is constructed. No-op unless
+            // `--screenshot-scene` was passed.
+            ScreenshotMode.applyDefaults()
+        #endif
+    }
 
     var body: some Scene {
         WindowGroup {
-            RootView()
-                .environment(model)
-                .task { await model.start() }
+            #if DEBUG
+                if ScreenshotMode.isActive {
+                    // A stubbed portal and one screen per launch. See
+                    // `ScreenshotMode` — it cannot submit, and it is compiled out
+                    // of release builds entirely.
+                    ScreenshotHost()
+                        .environment(model)
+                } else {
+                    RootView()
+                        .environment(model)
+                        .task { await model.start() }
+                }
+            #else
+                RootView()
+                    .environment(model)
+                    .task { await model.start() }
+            #endif
         }
     }
 }

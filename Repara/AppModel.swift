@@ -26,8 +26,13 @@ final class AppModel {
     let browse: NearbyBrowser
     private let drafter = Drafter()
 
-    init() {
-        let client = PortalClient()
+    /// - Parameter session: Injected only by `ScreenshotMode`, which serves the
+    ///   portal's endpoints from synthetic fixtures so the screenshots can be
+    ///   regenerated without a network or an account. `nil` everywhere else, and
+    ///   `PortalClient` builds its own configured session — this parameter adds
+    ///   no path that behaves differently in a shipping build.
+    init(session: URLSession? = nil) {
+        let client = PortalClient(session: session)
         self.client = client
         self.auth = Auth(client: client)
         self.submitter = Submitter(client: client)
