@@ -1,7 +1,8 @@
 import Foundation
 import ReparaCore
 
-/// One model call per report. Not an agent, not tool use, not MCP.
+/// One model call per report — two only when the first answer has to be sent
+/// back, see `readsAsDeliberation`. Not an agent, not tool use, not MCP.
 ///
 /// In goes the photo, the bundled type list and whatever the user said in any
 /// language. Out comes a validated `{tipo_id, descricao}` — the description in
@@ -83,14 +84,67 @@ struct Drafter {
         address: String?,
         taxonomy: Taxonomy = .bundled
     ) async throws -> Draft {
+        // Read once and used for both the model id and the transport:
+        // resolving `ModelSettings.provider` twice could, in principle, send
+        // one provider's model id to another's endpoint.
         let selected = ModelSettings.provider
+        let model = ModelSettings.draftModel(for: selected)
+
+        // Inert unless the build is a debug one launched with `--reuse-drafts`.
+        // See `DraftCache`: re-picking the same photo in a real report is a
+        // request for a *different* answer, not for this one again.
+        let cacheKey = DraftCache.key(
+            photo: photo, userText: userText, provider: selected, model: model)
+        if let cached = DraftCache.draft(forKey: cacheKey, taxonomy: taxonomy) { return cached }
+
+        let first = try await ask(
+            selected, model: model, photo: photo, userText: userText, address: address,
+            taxonomy: taxonomy, retryNote: nil)
+        guard Self.readsAsDeliberation(first.descricao) else {
+            DraftCache.store(first, forKey: cacheKey)
+            return first
+        }
+
+        // Ask once more, saying what was wrong with the last answer. It costs a
+        // model call and no portal request, and the alternative — picking which
+        // paragraph of the working-out was meant to be the description — is a
+        // guess about the sentence a council worker acts on.
+        //
+        // A failure on the retry is not a failure of the draft: the first
+        // answer is still there, so a thrown error here would lose a usable
+        // type to fix a description.
+        let second = try? await ask(
+            selected, model: model, photo: photo, userText: userText, address: address,
+            taxonomy: taxonomy, retryNote: Self.retryNote)
+        if let second, !Self.readsAsDeliberation(second.descricao) {
+            DraftCache.store(second, forKey: cacheKey)
+            return second
+        }
+
+        // Not cached: a flagged draft is the one answer worth paying to ask
+        // again, and re-using it would make the working-out sticky.
+        return Self.flagged(first)
+    }
+
+    /// One attempt. `retryNote` is empty on the first and says what came back
+    /// wrong on the second.
+    private func ask(
+        _ provider: ModelProviderID,
+        model: String,
+        photo: Data,
+        userText: String,
+        address: String?,
+        taxonomy: Taxonomy,
+        retryNote: String?
+    ) async throws -> Draft {
         let request = ModelRequest(
-            model: ModelSettings.draftModel(for: selected),
+            model: model,
             system: Self.systemPrompt,
             userText: Self.userPrompt(
                 userText: userText,
                 address: address,
-                taxonomy: taxonomy
+                taxonomy: taxonomy,
+                retryNote: retryNote
             ),
             image: photo,
             schema: Self.schema(for: taxonomy),
@@ -103,11 +157,8 @@ struct Drafter {
             allowFallbacks: true
         )
 
-        // `selected` is read once and used for both the model id and the
-        // transport: resolving `ModelSettings.provider` twice could, in
-        // principle, send one provider's model id to another's endpoint.
-        let text = try await selected.makeProvider().complete(request)
-        return try Self.parse(text, taxonomy: taxonomy, provider: selected)
+        let text = try await provider.makeProvider().complete(request)
+        return try Self.parse(text, taxonomy: taxonomy, provider: provider)
     }
 
     // MARK: Response
@@ -148,6 +199,100 @@ struct Drafter {
             notesForUser: payload.notes_for_user?.isEmpty == false ? payload.notes_for_user : nil
         )
     }
+
+    // MARK: The working-out problem
+
+    /// Does this read as the model's working-out rather than a report body?
+    ///
+    /// A structured-output schema does not stop a model deliberating *inside*
+    /// one of its strings. A real reply arrived with a stray `{ }}`, an aside
+    /// reading "Nota: consultar tipo 256 (Remoção-Monstros)" and the model's
+    /// own "Descrição final:" heading — all of it in `descricao`, which is
+    /// filed verbatim for a council worker to read.
+    ///
+    /// A schema cannot express "a description rather than an argument about
+    /// one", so it is checked here, for the same reason `tipo_id` is resolved
+    /// against the bundled taxonomy rather than trusted.
+    ///
+    /// Deliberately coarse. A false positive costs one more model call and
+    /// nothing else — the caller re-asks and keeps the original either way — so
+    /// the signals are the ones that cannot happen in a description a council
+    /// worker would want to read. A false negative is the one that reaches the
+    /// council.
+    static func readsAsDeliberation(_ text: String) -> Bool {
+        // Braces: JSON structure that escaped into the prose.
+        if text.contains("{") || text.contains("}") { return true }
+
+        let lines =
+            text
+            .replacingOccurrences(of: "\r\n", with: "\n")
+            .replacingOccurrences(of: "\r", with: "\n")
+            .components(separatedBy: "\n")
+            .map { $0.trimmingCharacters(in: .whitespaces) }
+
+        // A blank line between two written ones. The prompt asks for one or two
+        // sentences, so a paragraph break means the model stopped describing
+        // the street and started explaining itself. Leading and trailing blank
+        // lines are ordinary whitespace and say nothing.
+        if let first = lines.firstIndex(where: { !$0.isEmpty }),
+            let last = lines.lastIndex(where: { !$0.isEmpty }),
+            lines[first...last].contains("")
+        {
+            return true
+        }
+
+        return lines.contains(where: Self.isMetaHeading)
+    }
+
+    /// The headings a model reaches for once it is narrating rather than
+    /// describing.
+    ///
+    /// Written without accents and matched folded, so each appears once.
+    private static let metaHeadings: Set<String> = [
+        "nota", "notas", "observacao", "observacoes", "descricao",
+        "descricao final", "analise", "conclusao", "resposta", "justificacao",
+        "raciocinio", "tipo", "tipologia", "alternativa", "alternativas",
+    ]
+
+    /// Matched against the text before a line's **first colon**, and only
+    /// against the listed headings — so "Buraco na via: cerca de 20 cm de
+    /// profundidade", which is a description, matches nothing here.
+    private static func isMetaHeading(_ line: String) -> Bool {
+        guard let colon = line.firstIndex(of: ":") else { return false }
+        let heading = line[..<colon]
+            .folding(options: [.diacriticInsensitive, .caseInsensitive], locale: nil)
+            .trimmingCharacters(in: .whitespaces)
+        return metaHeadings.contains(heading)
+    }
+
+    /// Kept, not repaired.
+    ///
+    /// Choosing which paragraph of a deliberation was meant to be the report
+    /// body would be a guess, and a wrong salvage is the dangerous kind: it
+    /// reads as clean. So the text reaches the Review screen exactly as it
+    /// arrived, at low confidence — which the screen already prints next to the
+    /// type — with a note saying what to do about it.
+    private static func flagged(_ draft: Draft) -> Draft {
+        var out = draft
+        out.confidence = .low
+        out.notesForUser = ([Self.deliberationNote] + [draft.notesForUser].compactMap { $0 })
+            .joined(separator: " ")
+        return out
+    }
+
+    private static let deliberationNote =
+        "This came back with the model's working-out in it rather than a description. "
+        + "Read it and rewrite it before filing."
+
+    /// Appended last, after the type list, so it is the most recent thing said.
+    /// Only the second attempt sees it.
+    private static let retryNote = """
+        Your last reply put your working-out in descricao: a heading, an aside about another \
+        type, a paragraph of reasoning. That field is filed verbatim and a council worker reads \
+        it, so it must hold the description of the problem and nothing else — one or two \
+        sentences, no headings, no notes, no alternatives weighed up. Anything you want the \
+        reporter to know goes in notes_for_user instead.
+        """
 
     // MARK: Duplicate judgement
 
@@ -370,6 +515,11 @@ struct Drafter {
         for a reply. Do not invent details you cannot see; if the person told you something the \
         photo does not show, you may use it, but do not embellish beyond both.
 
+        descricao is filed word for word, so it holds the description and nothing else: no \
+        heading, no note to the reporter, no second version of it, no reasoning about which type \
+        to pick. Work that out before you answer, and put anything the reporter should know in \
+        notes_for_user.
+
         Do not describe people, faces, or vehicle number plates, and do not include them in the \
         description even if they are visible.
         """
@@ -377,7 +527,8 @@ struct Drafter {
     private static func userPrompt(
         userText: String,
         address: String?,
-        taxonomy: Taxonomy
+        taxonomy: Taxonomy,
+        retryNote: String? = nil
     ) -> String {
         var sections: [String] = []
 
@@ -399,6 +550,7 @@ struct Drafter {
         }.joined(separator: "\n\n")
 
         sections.append("The report types, grouped by council area:\n\n\(types)")
+        if let retryNote { sections.append(retryNote) }
         return sections.joined(separator: "\n\n")
     }
 }
