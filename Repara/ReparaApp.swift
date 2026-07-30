@@ -23,7 +23,11 @@ struct ReparaApp: App {
     var body: some Scene {
         WindowGroup {
             #if DEBUG
-                if ScreenshotMode.isActive {
+                if IconExport.isActive {
+                    // Draws the app icon from the same view the launch screen
+                    // shows. See `Tools/appicon.sh`.
+                    IconExportHost()
+                } else if ScreenshotMode.isActive {
                     // A stubbed portal and one screen per launch. See
                     // `ScreenshotMode` — it cannot submit, and it is compiled out
                     // of release builds entirely.

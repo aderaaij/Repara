@@ -156,18 +156,31 @@ struct DashedRail: View {
 struct ReparaMark: View {
     var size: CGFloat = 96
 
+    /// Square ground, no corner of its own — the framing the app icon needs,
+    /// because iOS applies its own mask and an icon that rounds itself first
+    /// ends up with transparent corners inside it. On screen the mark is always
+    /// the rounded one; this is the same drawing, framed for the mask.
+    var bleed = false
+
+    private var ink: Color { Color(red: 0.098, green: 0.110, blue: 0.129) }
+    private var corner: CGFloat { bleed ? 0 : size * 0.23 }
+
     var body: some View {
         ZStack {
-            RoundedRectangle(cornerRadius: size * 0.23, style: .continuous)
-                .fill(Color(red: 0.098, green: 0.110, blue: 0.129))
+            RoundedRectangle(cornerRadius: corner, style: .continuous)
+                .fill(ink)
 
             // The tape: a solid amber band with the ink stripes cut across it.
+            // It overhangs when full-bleed, because it is tilted and a band
+            // exactly one frame wide would end in a diagonal notch at each
+            // edge. Rounded, the corner curve hides that, so the band keeps the
+            // width — and the stripe phase — it has always had.
             ZStack {
                 Rectangle().fill(Repara.amber)
                 Hatch(spacing: size * 0.115, thickness: size * 0.05)
-                    .fill(Color(red: 0.098, green: 0.110, blue: 0.129))
+                    .fill(ink)
             }
-            .frame(height: size * 0.15)
+            .frame(width: size * (bleed ? 1.3 : 1), height: size * 0.15)
             .rotationEffect(.degrees(-8))
             .offset(y: size * 0.24)
 
@@ -181,7 +194,7 @@ struct ReparaMark: View {
                 }
         }
         .frame(width: size, height: size)
-        .clipShape(.rect(cornerRadius: size * 0.23, style: .continuous))
+        .clipShape(.rect(cornerRadius: corner, style: .continuous))
     }
 }
 
