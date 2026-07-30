@@ -41,6 +41,7 @@ SCENES=(
   # are top-of-screen shots. They needed 820 pt of scroll when Review was a
   # `Form` and the warnings were its fifth and sixth sections.
   "review-booked:11-review-booked:0"
+  "review-booked-far:11b-review-booked-further-off:0"
   "review-checking:12-review-checking-collections:0"
   "review-failed:13-review-collection-check-failed:0"
   "dry-run:14-dry-run:0"
