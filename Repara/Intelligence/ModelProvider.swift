@@ -74,6 +74,38 @@ enum ModelError: Error, CustomStringConvertible {
     case http(ModelProviderID, status: Int, body: String)
     case malformed(ModelProviderID, String)
 
+    /// What to show the user. As in `PortalError`, the two that are really a
+    /// status code and a parser complaint keep their English `description` —
+    /// they are for a bug report.
+    func message(in locale: Locale) -> String {
+        switch self {
+        case let .missingAPIKey(provider):
+            return String(
+                localized: """
+                    No \(provider.displayName) API key stored. Add one in Settings — it stays in \
+                    the Keychain and never leaves this phone except to \(provider.host).
+                    """,
+                bundle: locale.bundle, locale: locale)
+        case let .refused(provider, category, explanation):
+            let detail = [category, explanation].compactMap { $0 }.joined(separator: ": ")
+            let named =
+                detail.isEmpty ? provider.displayName : "\(provider.displayName) (\(detail))"
+            return String(
+                localized: """
+                    \(named) declined this request. Write the description yourself and pick a \
+                    type — everything else still works.
+                    """,
+                bundle: locale.bundle, locale: locale)
+        case let .truncated(provider):
+            return String(
+                localized:
+                    "\(provider.displayName)'s reply was cut off before it finished. Try again.",
+                bundle: locale.bundle, locale: locale)
+        case .http, .malformed:
+            return description
+        }
+    }
+
     var description: String {
         switch self {
         case let .missingAPIKey(provider):

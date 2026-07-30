@@ -1,0 +1,2 @@
+/* English lives in the `defaultValue:` at each call site; this file exists
+   so SwiftPM treats the pt-PT one as a localisation of a known base. */

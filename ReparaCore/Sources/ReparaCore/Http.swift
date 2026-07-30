@@ -49,6 +49,60 @@ public enum PortalError: Error, CustomStringConvertible, Sendable {
         }
     }
 
+    /// What to show the user, in their language.
+    ///
+    /// **Only the cases that ask for an action are translated.** `http`,
+    /// `notJSON` and `unexpectedShape` fall through to `description` on purpose:
+    /// they carry a path, a status and a content type, they exist to be pasted
+    /// into a bug report, and a Portuguese rendering of "expected JSON from
+    /// /gopiv2/… but got text/html" helps nobody. `description` stays what it
+    /// always was — the developer-facing form, and what the tests assert on.
+    public func message(in locale: Locale) -> String {
+        switch self {
+        case .notAuthenticated:
+            return String(
+                localized: "portal.session-expired",
+                defaultValue: "Your session has expired. Sign in again.",
+                bundle: .module.strings(for: locale), locale: locale)
+        case .loginFailed:
+            return String(
+                localized: "portal.login-failed",
+                defaultValue: """
+                    Sign-in failed — the portal did not establish a session. Check the email \
+                    and password. Note that Google and Apple sign-in will not work here; this \
+                    app implements only the native account login.
+                    """,
+                bundle: .module.strings(for: locale), locale: locale)
+        case .missingCredentials:
+            return String(
+                localized: "portal.missing-credentials",
+                defaultValue: "No portal credentials stored. Sign in from Settings.",
+                bundle: .module.strings(for: locale), locale: locale)
+        case let .noAddressFound(at, point, insideLisbon):
+            // The coordinates stay as they are — they are numbers, and they are
+            // what somebody would quote when reporting that this went wrong.
+            let where_ = "\(at.lat), \(at.lng) (EPSG:3763 \(Int(point.x)), \(Int(point.y)))"
+            return insideLisbon
+                ? String(
+                    localized: "portal.no-address-inside-lisbon",
+                    defaultValue: """
+                        No address at \(where_). The point is inside Lisbon but matched neither a \
+                        building nor a street. Drag the pin a few metres — onto the building \
+                        frontage, or onto the roadway.
+                        """,
+                    bundle: .module.strings(for: locale), locale: locale)
+                : String(
+                    localized: "portal.no-address-outside-lisbon",
+                    defaultValue: """
+                        No address at \(where_). The point is outside the Lisbon municipality, \
+                        which Na Minha Rua LX does not cover.
+                        """,
+                    bundle: .module.strings(for: locale), locale: locale)
+        case .http, .notJSON, .unexpectedShape:
+            return description
+        }
+    }
+
     public var isAuthFailure: Bool {
         if case .notAuthenticated = self { return true }
         return false

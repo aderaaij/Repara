@@ -37,6 +37,7 @@ import SwiftUI
 /// anything.
 struct NearbyView: View {
     @Environment(AppModel.self) private var model
+    @Environment(\.locale) private var locale
     let browser: NearbyBrowser
 
     @State private var camera: MapCameraPosition = .automatic
@@ -236,8 +237,19 @@ struct NearbyView: View {
             } label: {
                 HStack(alignment: .firstTextBaseline) {
                     VStack(alignment: .leading, spacing: 2) {
-                        Text(browser.typeFilter?.descricao ?? "All types")
-                            .font(.callout.weight(.medium))
+                        // Split rather than `?? "All types"`: coalescing makes
+                        // the whole expression a `String`, which takes the
+                        // verbatim `Text` overload and quietly leaves the
+                        // fallback untranslated. The type name itself is data
+                        // and is meant to be verbatim.
+                        Group {
+                            if let type = browser.typeFilter {
+                                Text(type.localizedDescricao(in: locale))
+                            } else {
+                                Text("All types")
+                            }
+                        }
+                        .font(.callout.weight(.medium))
                             .foregroundStyle(.primary)
                             .multilineTextAlignment(.leading)
                         Text(scopeLine)
@@ -276,12 +288,18 @@ struct NearbyView: View {
     private var scopeLine: String {
         let radius = browser.radiusMetres
         guard browser.typeFilter != nil else {
-            return "Every type, within \(radius) m · one request"
+            return String(
+                localized: "Every type, within \(radius) m · one request",
+                bundle: locale.bundle, locale: locale)
         }
         let hidden = browser.found.count - browser.results.count
+        // Pluralised in the catalogue rather than by appending an "s".
         return hidden > 0
-            ? "Filtered · \(hidden) other report\(hidden == 1 ? "" : "s") nearby are hidden"
-            : "Filtered · within \(radius) m"
+            ? String(
+                localized: "Filtered · \(hidden) other reports nearby are hidden",
+                bundle: locale.bundle, locale: locale)
+            : String(
+                localized: "Filtered · within \(radius) m", bundle: locale.bundle, locale: locale)
     }
 
     // MARK: Results
@@ -294,10 +312,12 @@ struct NearbyView: View {
                 if let failure = browser.failure {
                     CautionCard(
                         .unverified,
-                        title: "Not checked — not cleared",
-                        message:
-                            "The council's server did not answer for this area, so nothing is "
-                            + "being shown: an empty list here would be a lie. \(failure)",
+                        title: Text("Not checked — not cleared"),
+                        message: Text(
+                            """
+                            The council's server did not answer for this area, so nothing is \
+                            being shown: an empty list here would be a lie. \(failure)
+                            """),
                         systemImage: "wifi.exclamationmark"
                     ) {
                         Button {
@@ -367,8 +387,10 @@ struct NearbyView: View {
                 CardGroup {
                     DisclosureRow(
                         systemImage: "clock.arrow.circlepath",
-                        title: "\(closed.count) closed report\(closed.count == 1 ? "" : "s")",
-                        subtitle: closedSubtitle(closed),
+                        // Pluralised in the catalogue, not by concatenating an
+                        // "s" — Portuguese agrees the noun, not a suffix.
+                        title: Text("\(closed.count) closed reports"),
+                        subtitle: Text(closedSubtitle(closed)),
                         isExpanded: $showsClosed
                     ) {
                         ForEach(closed) { report in
@@ -379,8 +401,10 @@ struct NearbyView: View {
                 }
 
                 Text(
-                    "A finished report is a reason to file — if the problem is back in the "
-                        + "street, the council needs telling again."
+                    """
+                    A finished report is a reason to file — if the problem is back in the \
+                    street, the council needs telling again.
+                    """
                 )
                 .reparaFootnote()
             }
@@ -398,9 +422,23 @@ struct NearbyView: View {
     @ViewBuilder private func summary(open: Int, closed: [NearByOccurrence]) -> some View {
         if open == 0 {
             VStack(alignment: .leading, spacing: 3) {
-                (Text("Nothing open ") + Text(scopePhrase).italic() + Text(" here"))
-                    .font(.title3.weight(.semibold))
-                    .fixedSize(horizontal: false, vertical: true)
+                // One whole sentence per branch, rather than a scope phrase
+                // spliced into the middle of a shared one. The emphasis still
+                // puts the boundary inside the claim — that is the point of the
+                // sentence — but "under X" and "within N m" do not land in the
+                // same position in every language, so each has to be a sentence
+                // a translator can move words around in.
+                Group {
+                    if let type = browser.typeFilter {
+                        Text(
+                            "Nothing open *under \(type.localizedDescricao(in: locale).lowercased())* here"
+                        )
+                    } else {
+                        Text("Nothing open *within \(browser.radiusMetres) m* here")
+                    }
+                }
+                .font(.title3.weight(.semibold))
+                .fixedSize(horizontal: false, vertical: true)
 
                 Text(closedLine(closed))
                     .font(.subheadline)
@@ -423,16 +461,6 @@ struct NearbyView: View {
         }
     }
 
-    /// What the "nothing open" claim is actually scoped to. Names the filter
-    /// when there is one, so a narrowed screen can never be read as an empty
-    /// neighbourhood.
-    private var scopePhrase: String {
-        if let type = browser.typeFilter {
-            return "under \(type.descricao.lowercased())"
-        }
-        return "within \(browser.radiusMetres) m"
-    }
-
     /// Five closed reports on one corner is a coincidence; eighty-nine is a fact
     /// about the place. Only the second gets to say so — and it says it with the
     /// years, because "63 closed since 2021, 20 of them this year" is a street
@@ -443,21 +471,44 @@ struct NearbyView: View {
     /// sentence still reads without any of them.
     private func closedLine(_ closed: [NearByOccurrence]) -> String {
         let count = closed.count
-        let scope = "within \(browser.radiusMetres) m"
-        var line = "\(count) closed report\(count == 1 ? "" : "s") \(scope)"
+        let radius = browser.radiusMetres
+        // `String(_:)`, not interpolated as an `Int`: a localised integer takes a
+        // grouping separator, and pt-PT would have printed the year 2021 as
+        // "2 021".
+        let from = closed.filedYears.map { String($0.lowerBound) }
 
-        if let years = closed.filedYears {
-            line += years.lowerBound == years.upperBound
-                ? ", filed in \(years.lowerBound)"
-                : ", filed since \(years.lowerBound)"
+        // One whole sentence per shape rather than clauses appended to a growing
+        // string. ", filed since 2021" has to sit in a particular place in an
+        // English sentence and somewhere else in a Portuguese one.
+        let line: String
+        switch (closed.filedYears, from) {
+        case let (.some(years), .some(from)) where years.lowerBound == years.upperBound:
+            line = String(
+                localized: "\(count) closed reports within \(radius) m, filed in \(from)",
+                bundle: locale.bundle, locale: locale)
+        case let (.some, .some(from)):
+            line = String(
+                localized: "\(count) closed reports within \(radius) m, filed since \(from)",
+                bundle: locale.bundle, locale: locale)
+        default:
+            line = String(
+                localized: "\(count) closed reports within \(radius) m",
+                bundle: locale.bundle, locale: locale)
         }
 
+        // The chronic tail is its own sentence, joined rather than grown onto
+        // the end of the last one.
         let thisYear = closed.filed(in: Self.currentYear)
         if thisYear >= Self.chronicThreshold {
-            return line + " — \(thisYear) of them this year alone."
+            let tail = String(
+                localized: "\(thisYear) of them this year alone.",
+                bundle: locale.bundle, locale: locale)
+            return "\(line) — \(tail)"
         }
         if count >= Self.chronicThreshold {
-            return line + " — this keeps happening here."
+            let tail = String(
+                localized: "this keeps happening here.", bundle: locale.bundle, locale: locale)
+            return "\(line) — \(tail)"
         }
         return line + "."
     }
@@ -472,13 +523,18 @@ struct NearbyView: View {
     /// first: how far back this reaches is the reason to open it.
     private func closedSubtitle(_ closed: [NearByOccurrence]) -> String {
         guard let years = closed.filedYears else {
-            return "Context — never an argument against filing"
+            return String(
+                localized: "Context — never an argument against filing",
+                bundle: locale.bundle, locale: locale)
         }
+        // Years built with `String(_:)` for the same reason as `closedLine`.
         let span =
             years.lowerBound == years.upperBound
-            ? "\(years.lowerBound)"
-            : "\(years.lowerBound)–\(years.upperBound)"
-        return "\(span) · context, never an argument against filing"
+            ? String(years.lowerBound)
+            : "\(String(years.lowerBound))–\(String(years.upperBound))"
+        return String(
+            localized: "\(span) · context, never an argument against filing",
+            bundle: locale.bundle, locale: locale)
     }
 
     /// Amber keyline for open, grey for closed, and the closed ones sit on a
@@ -545,7 +601,7 @@ struct NearbyView: View {
     private func metaLine(_ report: NearByOccurrence) -> String {
         let parts = [
             report.filedYear.map(String.init),
-            distancePhrase(report.distance),
+            distancePhrase(report.distance, in: locale),
             report.freguesia.isEmpty ? nil : report.freguesia,
         ]
         return parts.compactMap { $0 }.joined(separator: " · ")
@@ -581,12 +637,17 @@ struct NearbyView: View {
                     .multilineTextAlignment(.center)
                     .padding(.top, 14)
 
-                (Text("No report of ") + Text(type.descricao.lowercased()).italic()
-                    + Text(" within \(browser.radiusMetres) m — but ")
-                    + Text("\(browser.found.count) other report")
-                    + Text(browser.found.count == 1 ? "" : "s")
-                    + Text(" nearby are hidden by this filter."))
-                    .font(.callout)
+                // One key, with the count as a plural variation in the
+                // catalogue rather than an "s" concatenated on the end — the
+                // Portuguese needs a different verb agreement, not a suffix.
+                Text(
+                    """
+                    No report of *\(type.localizedDescricao(in: locale).lowercased())* within \
+                    \(browser.radiusMetres) m — but \(browser.found.count) other reports nearby \
+                    are hidden by this filter.
+                    """
+                )
+                .font(.callout)
                     .foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)
                     .fixedSize(horizontal: false, vertical: true)
@@ -616,8 +677,10 @@ struct NearbyView: View {
                     .padding(.top, 14)
 
                 Text(
-                    "No open report of any type inside that circle. Move the map and search "
-                        + "again to check somewhere else — this says nothing about the next street."
+                    """
+                    No open report of any type inside that circle. Move the map and search \
+                    again to check somewhere else — this says nothing about the next street.
+                    """
                 )
                 .font(.callout)
                 .foregroundStyle(.secondary)
@@ -722,6 +785,9 @@ struct NearbyView: View {
     }
 
     private func distanceLabel(_ report: NearByOccurrence) -> String {
-        report.distance.isFinite ? "\(Int(report.distance.rounded())) m" : "nearby"
+        guard report.distance.isFinite else {
+            return String(localized: "nearby", bundle: locale.bundle, locale: locale)
+        }
+        return "\(Int(report.distance.rounded())) m"
     }
 }

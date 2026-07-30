@@ -22,27 +22,32 @@ struct ReparaApp: App {
 
     var body: some Scene {
         WindowGroup {
-            #if DEBUG
-                if IconExport.isActive {
-                    // Draws the app icon from the same view the launch screen
-                    // shows. See `Tools/appicon.sh`.
-                    IconExportHost()
-                } else if ScreenshotMode.isActive {
-                    // A stubbed portal and one screen per launch. See
-                    // `ScreenshotMode` — it cannot submit, and it is compiled out
-                    // of release builds entirely.
-                    ScreenshotHost()
-                        .environment(model)
-                } else {
+            // Everything the user reads sits inside this, so the language
+            // setting reaches every screen from one place rather than being
+            // remembered at each one.
+            LocalizedRoot {
+                #if DEBUG
+                    if IconExport.isActive {
+                        // Draws the app icon from the same view the launch screen
+                        // shows. See `Tools/appicon.sh`.
+                        IconExportHost()
+                    } else if ScreenshotMode.isActive {
+                        // A stubbed portal and one screen per launch. See
+                        // `ScreenshotMode` — it cannot submit, and it is compiled out
+                        // of release builds entirely.
+                        ScreenshotHost()
+                            .environment(model)
+                    } else {
+                        RootView()
+                            .environment(model)
+                            .task { await model.start() }
+                    }
+                #else
                     RootView()
                         .environment(model)
                         .task { await model.start() }
-                }
-            #else
-                RootView()
-                    .environment(model)
-                    .task { await model.start() }
-            #endif
+                #endif
+            }
         }
     }
 }
@@ -102,7 +107,11 @@ struct RootView: View {
         .tint(Repara.ink)
     }
 
-    private func title(for stage: AppModel.Stage) -> String {
+    /// `LocalizedStringKey` rather than `String`: the `String` overload of
+    /// `navigationTitle` is the verbatim one, so returning it here would print
+    /// these five words in English in a Portuguese app and look like a
+    /// translation that had been missed rather than one that never ran.
+    private func title(for stage: AppModel.Stage) -> LocalizedStringKey {
         switch stage {
         case .capture: "Report"
         case .drafting: "Drafting"
@@ -145,8 +154,10 @@ struct DraftingView: View {
                 Text("Reading the photo…")
                     .font(.title3.weight(.semibold))
                 Text(
-                    "\(model.providerName) picks one of 127 report types and drafts the Portuguese. "
-                        + "You read and can edit both before anything is filed."
+                    """
+                    \(model.providerName) picks one of 127 report types and drafts the Portuguese. \
+                    You read and can edit both before anything is filed.
+                    """
                 )
                 .font(.callout)
                 .foregroundStyle(.secondary)
@@ -207,8 +218,10 @@ struct FiledView: View {
                         .fixedSize(horizontal: false, vertical: true)
 
                     Text(
-                        "A worker will be dispatched. This cannot be withdrawn from the app — the "
-                            + "number below is how you follow it up."
+                        """
+                        A worker will be dispatched. This cannot be withdrawn from the app — the \
+                        number below is how you follow it up.
+                        """
                     )
                     .font(.callout)
                     .foregroundStyle(.secondary)
@@ -290,9 +303,11 @@ struct DryRunView: View {
                     .foregroundStyle(Repara.done)
 
                     Text(
-                        "This is the exact `obj` part that would have been posted, alongside "
-                            + "\(bytes.formatted(.byteCount(style: .file))) of multipart body "
-                            + "including the photo."
+                        """
+                        This is the exact `obj` part that would have been posted, alongside \
+                        \(bytes.formatted(.byteCount(style: .file))) of multipart body \
+                        including the photo.
+                        """
                     )
                     .font(.subheadline)
                     .foregroundStyle(.secondary)

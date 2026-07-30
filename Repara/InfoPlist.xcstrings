@@ -1,0 +1,44 @@
+{
+  "sourceLanguage" : "en",
+  "strings" : {
+    "CFBundleDisplayName" : {
+      "comment" : "The app's own name. Not copy — it is the same word on every home screen.",
+      "shouldTranslate" : false
+    },
+    "NSCameraUsageDescription" : {
+      "comment" : "Drawn by iOS, not by the app, so it follows the bundle language rather than the in-app picker. See AppLanguage.syncBundleLanguage.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Repara photographs the problem you are reporting. The photo is the evidence a council worker acts on."
+          }
+        },
+        "pt-PT" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A Repara fotografa o problema que está a comunicar. A fotografia é a prova sobre a qual o funcionário da câmara actua."
+          }
+        }
+      }
+    },
+    "NSLocationWhenInUseUsageDescription" : {
+      "comment" : "Drawn by iOS, not by the app, so it follows the bundle language rather than the in-app picker. See AppLanguage.syncBundleLanguage.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Repara uses your location to find the street address of the problem, so the council knows where to send someone. You can move the pin before filing."
+          }
+        },
+        "pt-PT" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A Repara usa a sua localização para encontrar a morada do problema, para que a câmara saiba onde enviar alguém. Pode mover o marcador antes de registar."
+          }
+        }
+      }
+    }
+  },
+  "version" : "1.0"
+}

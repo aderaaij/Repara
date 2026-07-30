@@ -35,13 +35,15 @@ against the dry-run payload instead.
 ## Layout
 
 ```
-ReparaCore/     SPM package — no UIKit, no SwiftUI, no LLM. 57 tests that run
+ReparaCore/     SPM package — no UIKit, no SwiftUI, no LLM. 136 tests that run
                 on a Mac with no device and no network.
   Projection    WGS84 ⇄ EPSG:3763, computed locally
   Models        wire shapes; the privacy boundary lives here
   Http · Auth   cookie session, error mapping, login, Keychain
   Geo           getGeoAttributes, house numbers, the two morada shapes
   Taxonomy      127 bundled types, ambiguity refusal
+  Localization  which language a reader wants, and which of a type's two
+                names belongs on which screen
   Multipart     the body quirks
   Submit        payload assembly and the submission gate
 
@@ -49,6 +51,8 @@ Repara/         the app — SwiftUI features, CoreLocation, the model calls
   DesignSystem  ink & tape: the palette, and CautionTier — the four things this
                 app can say before a report is filed, each with its own shape
                 signature so they survive greyscale and direct sun
+  Support       AppLanguage — the two languages the app speaks, and the locale
+                every screen resolves its strings against
 ```
 
 `ReparaCore` must not import UIKit, SwiftUI or anything to do with a model
@@ -56,9 +60,10 @@ API. It holds the parts that were expensive to learn and it needs to stay
 testable without a device.
 
 ```sh
-cd ReparaCore && swift test    # 57 tests, no network, no credentials
+cd ReparaCore && swift test    # 136 tests, no network, no credentials
 xcodebuild -project Repara.xcodeproj -scheme Repara \
   -destination 'generic/platform=iOS Simulator' build
+Tools/localize.sh              # re-extract the string catalogue after new copy
 ```
 
 Requires Xcode 26 and an iOS 26 target. `ReparaCore` builds against iOS 18 /
@@ -87,6 +92,18 @@ The one exception to the gate is the report types. All 127, grouped under their
 12 council areas and searchable in either language, are readable from the
 welcome screen without an account — "what can I even report?" deserves an answer
 before you sign up for anything.
+
+### Two languages, one report
+
+The app is in English and European Portuguese, following your phone unless you
+override it in Settings. Any Portuguese counts as Portuguese, Brazilian
+included; anything else gets English.
+
+**What gets filed is Portuguese either way.** A council worker reads the report
+and acts on it, so the description is written in European Portuguese whatever
+language the app is in — and the Review screen shows you that exact text, and
+lets you edit every word of it, before anything is sent. The setting changes the
+app around the report, never the report.
 
 ---
 
@@ -214,18 +231,25 @@ not the primary mechanism. It is still the only mechanism on Gemini.
 
 ## Status
 
-`swift test` passes 57 tests across 10 suites with no network. The projection
+`swift test` passes 136 tests across 18 suites with no network. The projection
 agrees with proj4 to 2.4 nm across Lisbon and the portal-offset negative test
 passes. The recorded submission is regenerated field-for-field from its
-coordinates. The app builds for the iOS 26 simulator and launches.
+coordinates. The app builds and runs on the iOS 26 simulator and on a physical
+iPhone, in both languages.
+
+**One real report has been filed, and it went through.** It was a *building*
+match, so that is the shape a live 201 now covers end to end: `getGeoAttributes`
+→ `idtipo: "2"` with `morada` and `cod_sig` → `POST /ocorrencias`, including the
+payload quirks that look like bugs.
 
 Not verified:
 
-- **No report has been filed by this app.** That step is deliberately
-  outstanding — it has to happen outdoors, in front of a real problem.
 - **The street-match submit shape** (`idtipo: "8"`, `cod_via`, empty `n_pol`) is
-  inferred by analogy and has never been submitted by any client. Review warns
-  and invites you to move the pin onto the building frontage.
+  inferred by analogy and has never been submitted by any client. Filing a real
+  report narrowed that risk rather than retiring it: it used to be "does any of
+  this work" and it is now exactly one branch of `Morada`. Review warns and
+  invites you to move the pin onto the building frontage, and should keep doing
+  so until a street match has been filed too.
 - Camera capture on a physical device — the simulator has no camera, so the
   library picker was used.
 

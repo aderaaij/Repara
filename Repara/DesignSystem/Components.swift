@@ -107,13 +107,25 @@ struct StatusChip: View {
 /// starts as `.nan` and is filled in by `stripped(relativeTo:)`, and
 /// `Int(Double.nan)` *traps* — so a report that reached a view without going
 /// through that would crash the screen rather than read a little vaguely.
-func distancePhrase(_ distance: Double) -> String {
-    distance.isFinite ? "\(Int(distance.rounded())) m away" : "nearby"
+///
+/// Takes the locale rather than reading the current one, because this is called
+/// from view bodies that already have the app's chosen language in the
+/// environment, and the two must not be able to disagree.
+func distancePhrase(_ distance: Double, in locale: Locale) -> String {
+    guard distance.isFinite else {
+        return String(localized: "nearby", bundle: locale.bundle, locale: locale)
+    }
+    return String(
+        localized: "\(Int(distance.rounded())) m away", bundle: locale.bundle, locale: locale)
 }
 
 /// "8 m", or nil when the distance was never filled in, so a caller composing a
 /// sentence around it can choose different words rather than say "nearby from
 /// your pin".
+///
+/// Not localised, and does not need to be: it is a number and the SI symbol for
+/// it, which read the same in both languages, and every distance this app shows
+/// is under a kilometre so no separator is involved.
 func metres(_ distance: Double) -> String? {
     distance.isFinite ? "\(Int(distance.rounded())) m" : nil
 }
@@ -151,10 +163,12 @@ struct GlassChip<Content: View>: View {
 /// they collapse to a line each and open when questioned. The 240 pt map that
 /// used to open this screen pushed the Portuguese text, which is the thing that
 /// actually gets sent, below the fold.
+/// `Text` rather than `String` for the two labels — see `PushRow`, which took
+/// the same change for the same reason.
 struct DisclosureRow<Detail: View>: View {
     let systemImage: String
-    let title: String
-    let subtitle: String
+    let title: Text
+    let subtitle: Text
     @Binding var isExpanded: Bool
     @ViewBuilder var detail: () -> Detail
 
@@ -169,11 +183,11 @@ struct DisclosureRow<Detail: View>: View {
                         .foregroundStyle(.secondary)
                         .frame(width: 22)
                     VStack(alignment: .leading, spacing: 1) {
-                        Text(title)
+                        title
                             .font(.body)
                             .foregroundStyle(.primary)
                             .multilineTextAlignment(.leading)
-                        Text(subtitle)
+                        subtitle
                             .font(.footnote)
                             .foregroundStyle(.secondary)
                             .multilineTextAlignment(.leading)
@@ -196,10 +210,18 @@ struct DisclosureRow<Detail: View>: View {
 }
 
 /// A row that pushes somewhere, rather than opening in place.
+///
+/// The labels are `Text`, not `String`, and that is a localisation decision
+/// rather than a stylistic one. `Text(someString)` is the *verbatim* overload,
+/// so a row taking `String` silently swallowed every literal handed to it — "1
+/// photo attached" and "All types" were never extracted into the catalogue and
+/// would have stayed English in a Portuguese app, with nothing to notice.
+/// Taking `Text` puts the choice at the call site, where one caller passes copy
+/// to translate and the next passes a council type name that must not be.
 struct PushRow: View {
     let systemImage: String
-    let title: String
-    let subtitle: String
+    let title: Text
+    let subtitle: Text
     let action: () -> Void
 
     var body: some View {
@@ -210,11 +232,11 @@ struct PushRow: View {
                     .foregroundStyle(.secondary)
                     .frame(width: 22)
                 VStack(alignment: .leading, spacing: 1) {
-                    Text(title)
+                    title
                         .font(.body)
                         .foregroundStyle(.primary)
                         .multilineTextAlignment(.leading)
-                    Text(subtitle)
+                    subtitle
                         .font(.footnote)
                         .foregroundStyle(.secondary)
                         .multilineTextAlignment(.leading)

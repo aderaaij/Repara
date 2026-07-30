@@ -36,6 +36,16 @@ struct Drafter {
     enum DrafterError: Error, CustomStringConvertible {
         case unknownType(Int)
 
+        func message(in locale: Locale) -> String {
+            switch self {
+            case let .unknownType(id):
+                return String(
+                    localized:
+                        "The model suggested report type \(id), which is not in the bundled list.",
+                    bundle: locale.bundle, locale: locale)
+            }
+        }
+
         var description: String {
             switch self {
             case let .unknownType(id):
@@ -78,12 +88,19 @@ struct Drafter {
     ///   - address: For the same reason, `AppModel` has no address to pass yet
     ///     — resolving one also needs the type. It is honoured when a caller
     ///     does have one.
+    ///   - readerLocale: The language **the reporter** reads, for the fields
+    ///     the reporter reads: `notes_for_user`, and the note this file adds
+    ///     when an answer comes back as working-out. **Not** the language of
+    ///     `descricao`, which is European Portuguese unconditionally, because a
+    ///     council worker reads that one.
     func draft(
         photo: Data,
         userText: String,
         address: String?,
-        taxonomy: Taxonomy = .bundled
+        taxonomy: Taxonomy = .bundled,
+        readerLocale: Locale
     ) async throws -> Draft {
+        let replyLanguage = AppLanguage.promptName(for: readerLocale)
         // Read once and used for both the model id and the transport:
         // resolving `ModelSettings.provider` twice could, in principle, send
         // one provider's model id to another's endpoint.
@@ -94,12 +111,13 @@ struct Drafter {
         // See `DraftCache`: re-picking the same photo in a real report is a
         // request for a *different* answer, not for this one again.
         let cacheKey = DraftCache.key(
-            photo: photo, userText: userText, provider: selected, model: model)
+            photo: photo, userText: userText, provider: selected, model: model,
+            replyLanguage: replyLanguage)
         if let cached = DraftCache.draft(forKey: cacheKey, taxonomy: taxonomy) { return cached }
 
         let first = try await ask(
             selected, model: model, photo: photo, userText: userText, address: address,
-            taxonomy: taxonomy, retryNote: nil)
+            taxonomy: taxonomy, replyLanguage: replyLanguage, retryNote: nil)
         guard Self.readsAsDeliberation(first.descricao) else {
             DraftCache.store(first, forKey: cacheKey)
             return first
@@ -115,7 +133,7 @@ struct Drafter {
         // type to fix a description.
         let second = try? await ask(
             selected, model: model, photo: photo, userText: userText, address: address,
-            taxonomy: taxonomy, retryNote: Self.retryNote)
+            taxonomy: taxonomy, replyLanguage: replyLanguage, retryNote: Self.retryNote)
         if let second, !Self.readsAsDeliberation(second.descricao) {
             DraftCache.store(second, forKey: cacheKey)
             return second
@@ -123,7 +141,7 @@ struct Drafter {
 
         // Not cached: a flagged draft is the one answer worth paying to ask
         // again, and re-using it would make the working-out sticky.
-        return Self.flagged(first)
+        return Self.flagged(first, in: readerLocale)
     }
 
     /// One attempt. `retryNote` is empty on the first and says what came back
@@ -135,6 +153,7 @@ struct Drafter {
         userText: String,
         address: String?,
         taxonomy: Taxonomy,
+        replyLanguage: String,
         retryNote: String?
     ) async throws -> Draft {
         let request = ModelRequest(
@@ -144,6 +163,7 @@ struct Drafter {
                 userText: userText,
                 address: address,
                 taxonomy: taxonomy,
+                replyLanguage: replyLanguage,
                 retryNote: retryNote
             ),
             image: photo,
@@ -272,17 +292,25 @@ struct Drafter {
     /// reads as clean. So the text reaches the Review screen exactly as it
     /// arrived, at low confidence — which the screen already prints next to the
     /// type — with a note saying what to do about it.
-    private static func flagged(_ draft: Draft) -> Draft {
+    private static func flagged(_ draft: Draft, in locale: Locale) -> Draft {
         var out = draft
         out.confidence = .low
-        out.notesForUser = ([Self.deliberationNote] + [draft.notesForUser].compactMap { $0 })
+        out.notesForUser =
+            ([Self.deliberationNote(in: locale)] + [draft.notesForUser].compactMap { $0 })
             .joined(separator: " ")
         return out
     }
 
-    private static let deliberationNote =
-        "This came back with the model's working-out in it rather than a description. "
-        + "Read it and rewrite it before filing."
+    /// Shown to the reporter, so it follows the app's language like the rest of
+    /// `notesForUser` — the text it is *about* stays exactly as it arrived.
+    private static func deliberationNote(in locale: Locale) -> String {
+        String(
+            localized: """
+                This came back with the model's working-out in it rather than a description. \
+                Read it and rewrite it before filing.
+                """,
+            bundle: locale.bundle, locale: locale)
+    }
 
     /// Appended last, after the type list, so it is the most recent thing said.
     /// Only the second attempt sees it.
@@ -324,9 +352,11 @@ struct Drafter {
         descricao: String,
         type: TipoOcorrencia,
         address: String?,
-        nearBy: [NearByOccurrence]
+        nearBy: [NearByOccurrence],
+        readerLocale: Locale
     ) async throws -> DuplicateVerdict {
         guard !nearBy.isEmpty else { return DuplicateVerdict(matches: [], reason: nil) }
+        let replyLanguage = AppLanguage.promptName(for: readerLocale)
 
         // Read once and used for both the model id and the transport, so the
         // two can never come from different providers.
@@ -335,7 +365,8 @@ struct Drafter {
             model: ModelSettings.judgeModel(for: provider),
             system: Self.judgeSystemPrompt,
             userText: Self.judgePrompt(
-                descricao: descricao, type: type, address: address, nearBy: nearBy),
+                descricao: descricao, type: type, address: address, nearBy: nearBy,
+                replyLanguage: replyLanguage),
             // Text only. A photograph would tell the model nothing the
             // descriptions do not, and it doubles the cost of a call made
             // every time the pin moves onto a new set of reports.
@@ -438,7 +469,8 @@ struct Drafter {
         descricao: String,
         type: TipoOcorrencia,
         address: String?,
-        nearBy: [NearByOccurrence]
+        nearBy: [NearByOccurrence],
+        replyLanguage: String
     ) -> String {
         var lines = ["The new report:", "Type: \(type.descricao) (\(type.area))"]
         if let address, !address.isEmpty { lines.append("Address: \(address)") }
@@ -452,7 +484,11 @@ struct Drafter {
             return "\(index + 1). \(body)"
         }.joined(separator: "\n")
 
-        return lines.joined(separator: "\n") + "\n\nReports already nearby:\n\(list)"
+        // `reason` is shown to the reporter and never filed, so it follows the
+        // app's language rather than the report's.
+        return lines.joined(separator: "\n")
+            + "\n\nReports already nearby:\n\(list)"
+            + "\n\nWrite reason in \(replyLanguage)."
     }
 
     // MARK: Schema
@@ -528,9 +564,20 @@ struct Drafter {
         userText: String,
         address: String?,
         taxonomy: Taxonomy,
+        replyLanguage: String,
         retryNote: String? = nil
     ) -> String {
         var sections: [String] = []
+
+        // Only `notes_for_user`. Named explicitly against `descricao` in the
+        // same breath, because this is the one instruction in the prompt that
+        // could be over-applied into the field a council worker reads.
+        sections.append(
+            """
+            Write notes_for_user in \(replyLanguage) — the reporter reads it and it is not filed. \
+            This does not apply to descricao, which is European Portuguese whatever language the \
+            reporter uses.
+            """)
 
         if let address, !address.isEmpty {
             sections.append("The map pin currently resolves to: \(address)")

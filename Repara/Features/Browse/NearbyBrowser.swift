@@ -169,9 +169,10 @@ final class NearbyBrowser {
     // MARK: Errors
 
     private static func describe(_ error: any Error) -> String {
+        let locale = AppLanguage.selected.locale
         switch error {
-        case let error as PortalError: return error.description
-        case let error as ProjectionError: return error.description
+        case let error as PortalError: return error.message(in: locale)
+        case let error as ProjectionError: return error.message(in: locale)
         default: return error.localizedDescription
         }
     }

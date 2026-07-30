@@ -205,7 +205,7 @@ struct ReparaLockup: View {
         VStack(alignment: .leading, spacing: 2) {
             HStack(spacing: 0) {
                 Text("Repara").foregroundStyle(.white)
-                Text(".").foregroundStyle(Repara.amber)
+                Text(verbatim: ".").foregroundStyle(Repara.amber)
             }
             .font(.system(size: 30, weight: .bold, design: .default))
             .kerning(-0.5)

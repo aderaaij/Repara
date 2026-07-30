@@ -20,16 +20,20 @@ struct StatusView: View {
                 if let failure {
                     CautionCard(
                         .unverified,
-                        title: "Could not load your reports",
-                        message: failure,
+                        title: Text("Could not load your reports"),
+                        // Verbatim: whatever the portal or the network said,
+                        // quoted rather than translated.
+                        message: Text(failure),
                         systemImage: "wifi.exclamationmark"
                     )
                 }
 
                 if !reports.isEmpty {
                     Text(
-                        "\(reports.count) filed from this account. Status comes from the council, "
-                            + "not from Repara."
+                        """
+                        \(reports.count) filed from this account. Status comes from the council, \
+                        not from Repara.
+                        """
                     )
                     .reparaFootnote()
 
@@ -41,8 +45,10 @@ struct StatusView: View {
                     }
 
                     Text(
-                        "A closed report is not proof the problem is gone. If it is still there, "
-                            + "file it again — that is what the council's own process expects."
+                        """
+                        A closed report is not proof the problem is gone. If it is still there, \
+                        file it again — that is what the council's own process expects.
+                        """
                     )
                     .reparaFootnote()
                 }

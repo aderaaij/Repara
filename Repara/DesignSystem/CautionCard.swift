@@ -55,10 +55,17 @@ enum CautionTier {
 }
 
 /// One switch, four looks. Nothing else in the app picks a warning colour.
+///
+/// `title` and `message` are `Text` rather than `String` so that each call site
+/// has to say whether it is handing over **copy or data**. A card's title is
+/// always copy; its message is sometimes a sentence to translate and sometimes
+/// a portal error or a note a model wrote, which must be printed exactly as it
+/// arrived. `Text(String)` is the verbatim overload, so a `String` parameter
+/// silently made every one of these the second kind.
 struct CautionCard<Content: View>: View {
     let tier: CautionTier
-    let title: String
-    let message: String
+    let title: Text
+    let message: Text
     var systemImage: String
     /// Plain facts carried inside the card, under a hairline: what Review knows
     /// about the report regardless of what the card is warning about.
@@ -90,13 +97,13 @@ struct CautionCard<Content: View>: View {
         VStack(spacing: 0) {
             VStack(alignment: .leading, spacing: 8) {
                 Label {
-                    Text(title).font(.headline)
+                    title.font(.headline)
                 } icon: {
                     Image(systemName: systemImage)
                 }
                 .foregroundStyle(tier.ink)
 
-                Text(message)
+                message
                     .font(.subheadline)
                     .foregroundStyle(tier.ink.opacity(0.9))
                     .fixedSize(horizontal: false, vertical: true)
@@ -127,13 +134,13 @@ struct CautionCard<Content: View>: View {
             VStack(spacing: 0) {
                 VStack(alignment: .leading, spacing: 8) {
                     Label {
-                        Text(title).font(.headline)
+                        title.font(.headline)
                     } icon: {
                         Image(systemName: systemImage)
                     }
                     .foregroundStyle(tier.ink)
 
-                    Text(message)
+                    message
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
                         .fixedSize(horizontal: false, vertical: true)
@@ -166,10 +173,10 @@ struct CautionCard<Content: View>: View {
                 .foregroundStyle(tier.tint)
                 .padding(.top, 1)
             VStack(alignment: .leading, spacing: 2) {
-                Text(title)
+                title
                     .font(.subheadline.weight(.semibold))
                     .foregroundStyle(tier.ink)
-                Text(message)
+                message
                     .font(.footnote)
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
@@ -184,8 +191,8 @@ struct CautionCard<Content: View>: View {
 extension CautionCard where Content == EmptyView {
     init(
         _ tier: CautionTier,
-        title: String,
-        message: String,
+        title: Text,
+        message: Text,
         systemImage: String,
         footer: AnyView? = nil
     ) {
@@ -200,8 +207,8 @@ extension CautionCard where Content == EmptyView {
 extension CautionCard {
     init(
         _ tier: CautionTier,
-        title: String,
-        message: String,
+        title: Text,
+        message: Text,
         systemImage: String,
         footer: AnyView? = nil,
         @ViewBuilder content: @escaping () -> Content
@@ -294,7 +301,7 @@ struct QuotedReport: View {
 /// either without looking, and always in pairs — a single chip is an
 /// acknowledgement, which is the thing these cards exist not to be.
 struct AnswerChip: View {
-    let title: String
+    let title: Text
     var fill: AnyShapeStyle
     var label: Color
     var stroke: Color?
@@ -302,7 +309,7 @@ struct AnswerChip: View {
 
     var body: some View {
         Button(action: action) {
-            Text(title)
+            title
                 .font(.subheadline.weight(.semibold))
                 .foregroundStyle(label)
                 .frame(maxWidth: .infinity, minHeight: 46)
@@ -315,7 +322,7 @@ struct AnswerChip: View {
     }
 
     /// Tinted in the tier's own colour: the answer that agrees with the card.
-    static func agreeing(_ title: String, _ tier: CautionTier, action: @escaping () -> Void)
+    static func agreeing(_ title: Text, _ tier: CautionTier, action: @escaping () -> Void)
         -> AnswerChip
     {
         switch tier {
@@ -332,7 +339,7 @@ struct AnswerChip: View {
     }
 
     /// Neutral: the answer that says the card has the wrong idea.
-    static func dissenting(_ title: String, _ tier: CautionTier, action: @escaping () -> Void)
+    static func dissenting(_ title: Text, _ tier: CautionTier, action: @escaping () -> Void)
         -> AnswerChip
     {
         switch tier {
@@ -351,11 +358,11 @@ struct AnswerChip: View {
 /// The one place a green tick is allowed next to a check: an answer the user
 /// actually gave. Never a lookup that failed, and never an empty result.
 struct AnsweredNote: View {
-    let text: String
+    let text: Text
 
     var body: some View {
         Label {
-            Text(text).font(.subheadline.weight(.medium))
+            text.font(.subheadline.weight(.medium))
         } icon: {
             Image(systemName: "checkmark")
         }
