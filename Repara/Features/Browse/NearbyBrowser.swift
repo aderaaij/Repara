@@ -2,7 +2,7 @@ import Foundation
 import Observation
 import ReparaCore
 
-/// Browsing what the council already has, one occurrence type at a time.
+/// Browsing what the council already has, around a point.
 ///
 /// Held by `AppModel` so a look survives leaving the screen and coming back —
 /// which is also what stops the return trip costing another request — but kept
@@ -10,65 +10,74 @@ import ReparaCore
 /// under construction and must never feed it. Nothing here reaches a
 /// `PreparedReport`; these results are read-only and stay that way.
 ///
-/// The cost model is the whole design. `getGeoAttributes` answers for a single
-/// type within about 100 m, so one look is one request and "everything reported
-/// here" would be 127 of them. Hence: searching is something the user asks for
-/// by tapping, never something a pan sets off, and looking again at a place and
-/// type already looked at comes out of `cache` instead of off the council's
-/// server.
+/// **One look is one request, whatever is being looked for.** This screen used
+/// to be built around `getGeoAttributes`, which answers about a single
+/// occurrence type — so "everything reported here" was 127 requests, the type
+/// was a question the user had to answer before anything could be shown, and
+/// looking under related types was a deliberate purchase. The app API's area
+/// search answers about every type at once, so all of that is gone: the type is
+/// now a filter over results already in hand, and it costs nothing to change.
+///
+/// The single-type call has not gone away — `Geo.nearBy` still backs duplicate
+/// detection, where the question really is about one type. It is just no longer
+/// how browsing works.
 @MainActor
 @Observable
 final class NearbyBrowser {
     private let client: PortalClient
+    private let session: AppSession
 
-    init(client: PortalClient) {
+    init(client: PortalClient, session: AppSession) {
         self.client = client
+        self.session = session
         let stored = UserDefaults.standard.integer(forKey: Self.storedTypeKey)
-        type = stored > 0 ? Taxonomy.bundled.type(id: stored) : nil
+        typeFilter = stored > 0 ? Taxonomy.bundled.type(id: stored) : nil
     }
 
     // MARK: What is being browsed
 
-    /// Remembered between visits. The type is the question this screen asks, and
-    /// making somebody answer it again every time turns a glance into a chore.
-    var type: TipoOcorrencia? {
+    /// Narrow the reports on screen to one type. **Nil means all of them**,
+    /// which is the default and the normal case.
+    ///
+    /// Changing this spends nothing and refetches nothing — the answer already
+    /// covers every type, so this filters what is in hand. That is the whole
+    /// difference from the old screen, where this was the question the request
+    /// asked and changing it threw the results away.
+    var typeFilter: TipoOcorrencia? {
         didSet {
-            guard type?.id != oldValue?.id else { return }
-            UserDefaults.standard.set(type?.id ?? 0, forKey: Self.storedTypeKey)
-            results = []
-            includedTypes = []
-            searchedAt = nil
-            failure = nil
+            guard typeFilter?.id != oldValue?.id else { return }
+            UserDefaults.standard.set(typeFilter?.id ?? 0, forKey: Self.storedTypeKey)
         }
     }
 
     private static let storedTypeKey = "browseTypeId"
 
-    /// Other types that could be holding the same physical problem as the one
-    /// selected — the offer this screen makes, never something it acts on.
-    ///
-    /// Browsing is not urgent and nobody is standing in the street, so widening
-    /// is a tap. (The Review screen is the opposite case and does spend the
-    /// requests unasked, but only for collection requests; see
-    /// `AppModel.checkForBookedCollections`.)
-    var relatedTypes: [RelatedType] {
-        guard let type else { return [] }
-        return Taxonomy.bundled.related(to: type).filter { !includedTypes.contains($0.id) }
-    }
+    /// How far out the last answer reached.
+    let radiusMetres = AreaSearch.defaultRadiusMetres
 
     // MARK: What came back
 
-    private(set) var results: [NearByOccurrence] = []
+    /// Everything found, every type, nearest first.
+    private(set) var found: [NearByOccurrence] = []
     private(set) var isSearching = false
     private(set) var failure: String?
 
-    /// Every type the results on screen cover, in the order they were asked for.
-    /// More than one only after a deliberate widening.
-    private(set) var includedTypes: [Int] = []
+    /// What is on screen, after the type filter.
+    var results: [NearByOccurrence] {
+        guard let typeFilter else { return found }
+        return found.filter { $0.tipoId == typeFilter.id }
+    }
 
-    /// True once results span more than the selected type, so the list can say
-    /// which type each row came from — otherwise a mixed list reads as one.
-    var isWidened: Bool { includedTypes.count > 1 }
+    /// Every type present in the answer, most-reported first — what the filter
+    /// can usefully offer, as opposed to all 127.
+    var typesPresent: [(type: TipoOcorrencia, count: Int)] {
+        Dictionary(grouping: found, by: \.tipoId)
+            .compactMap { id, reports in
+                guard let type = Taxonomy.bundled.type(id: id) else { return nil }
+                return (type, reports.count)
+            }
+            .sorted { ($0.count, $1.type.descricao) > ($1.count, $0.type.descricao) }
+    }
 
     /// Centre of the answer currently on screen — the point the distances are
     /// measured from and the circle is drawn around. Nil until a search lands.
@@ -80,20 +89,18 @@ final class NearbyBrowser {
 
     // MARK: Searching
 
-    /// One search, one request — unless the same place and type were already
-    /// asked for, in which case no request at all.
+    /// One search, one request — unless the same place was already asked about,
+    /// in which case no request at all.
     ///
     /// The cache lives as long as the screen does. Reports arrive over days, so
     /// a few minutes of staleness costs nothing; pull to refresh forces a fresh
     /// answer when it matters.
     func search(at coordinate: LatLng, refreshing: Bool = false) async {
-        guard let type else { return }
         hasSearched = true
 
-        let key = Key(tipoId: type.id, at: Projection.forward(coordinate))
+        let key = Key(at: Projection.forward(coordinate))
         if !refreshing, let hit = cache[key] {
-            results = hit.found
-            includedTypes = [type.id]
+            found = hit.found
             searchedAt = hit.centre
             failure = nil
             return
@@ -102,10 +109,16 @@ final class NearbyBrowser {
         isSearching = true
         defer { isSearching = false }
         do {
-            let found = try await Geo.nearBy(client, around: coordinate, tipoId: type.id)
-            cache[key] = (centre: coordinate, found: found)
-            results = found
-            includedTypes = [type.id]
+            let area = try await AreaSearch.occurrences(
+                client, session: session, near: coordinate, radiusMetres: radiusMetres)
+            // Converted to the one shape the map, the rows and the sheet are
+            // written against. Sorted here because the server's `ordem` is a
+            // request we make rather than a guarantee we have tested.
+            let reports = area
+                .map { NearByOccurrence($0) }
+                .sorted { $0.distance < $1.distance }
+            cache[key] = (centre: coordinate, found: reports)
+            found = reports
             searchedAt = coordinate
             failure = nil
         } catch {
@@ -113,81 +126,29 @@ final class NearbyBrowser {
         }
     }
 
-    /// Look again under the types that could be holding the same problem.
-    ///
-    /// One request per type, up to `Taxonomy.maxRelatedLookups` — the server has
-    /// no way to answer for several at once. Searched around the point the
-    /// answer on screen came from, never the point the map has since drifted to,
-    /// so every distance in the merged list is measured from the same place.
-    ///
-    /// Shares the per-type cache with `search`, so widening and then selecting
-    /// one of those types from the picker costs nothing the second time.
-    func widen() async {
-        guard let centre = searchedAt else { return }
-        let wanted = relatedTypes.map(\.id)
-        guard !wanted.isEmpty else { return }
-
-        let point = Projection.forward(centre)
-        let cached = wanted.filter { cache[Key(tipoId: $0, at: point)] != nil }
-        let toFetch = wanted.filter { !cached.contains($0) }
-
-        isSearching = true
-        defer { isSearching = false }
-
-        var found = results
-        var reached: [Int] = []
-
-        for tipoId in cached {
-            found += cache[Key(tipoId: tipoId, at: point)]?.found ?? []
-            reached.append(tipoId)
-        }
-
-        if !toFetch.isEmpty {
-            do {
-                let search = try await Geo.nearBy(client, around: centre, tipoIds: toFetch)
-                for tipoId in search.searched {
-                    cache[Key(tipoId: tipoId, at: point)] = (
-                        centre: centre, found: search.found.filter { $0.tipoId == tipoId }
-                    )
-                }
-                found += search.found
-                reached += search.searched
-                failure =
-                    search.isComplete
-                    ? nil
-                    : "\(search.failed.count) of these types did not answer, so this is not the "
-                        + "whole picture. Pull to refresh to try again."
-            } catch {
-                failure = Self.describe(error)
-            }
-        }
-
-        var seen = Set<Int>()
-        results = found.filter { seen.insert($0.id).inserted }.sorted { $0.distance < $1.distance }
-        includedTypes += reached
-    }
-
     /// Whether the map has wandered far enough from the last answer to be worth
-    /// spending another request on. 40 m, against an answer that reaches ~100 m.
+    /// spending another request on.
+    ///
+    /// Scaled to the radius rather than fixed: at 225 m an answer stays broadly
+    /// true for a good deal further than the 40 m the old ~100 m call allowed.
     func shouldOfferSearch(at centre: LatLng) -> Bool {
-        guard type != nil, !isSearching else { return false }
+        guard !isSearching else { return false }
         guard let searchedAt else { return true }
         return Projection.forward(centre).distance(to: Projection.forward(searchedAt))
-            > Self.restCanMoveMetres
+            > Double(radiusMetres) * Self.restCanDriftFraction
     }
 
-    private static let restCanMoveMetres = 40.0
+    private static let restCanDriftFraction = 0.35
 
     // MARK: Cache
 
-    /// Same type, same place to within ~10 m, same question.
+    /// Same place to within ~10 m. No type in the key any more — one answer
+    /// covers every type, so there is only one question to have asked.
     private struct Key: Hashable {
-        let tipoId: Int
         let x: Int
         let y: Int
 
-        init(tipoId: Int, at point: PtTm06) {
-            self.tipoId = tipoId
+        init(at point: PtTm06) {
             x = Int((point.x / 10).rounded())
             y = Int((point.y / 10).rounded())
         }
@@ -199,8 +160,7 @@ final class NearbyBrowser {
     /// previous user's neighbourhood sitting in memory behind the welcome screen.
     func reset() {
         cache.removeAll()
-        results = []
-        includedTypes = []
+        found = []
         searchedAt = nil
         failure = nil
         hasSearched = false

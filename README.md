@@ -46,6 +46,9 @@ ReparaCore/     SPM package — no UIKit, no SwiftUI, no LLM. 57 tests that run
   Submit        payload assembly and the submission gate
 
 Repara/         the app — SwiftUI features, CoreLocation, the model calls
+  DesignSystem  ink & tape: the palette, and CautionTier — the four things this
+                app can say before a report is filed, each with its own shape
+                signature so they survive greyscale and direct sun
 ```
 
 `ReparaCore` must not import UIKit, SwiftUI or anything to do with a model

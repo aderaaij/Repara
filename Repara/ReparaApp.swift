@@ -1,5 +1,6 @@
 import ReparaCore
 import SwiftUI
+import UIKit
 
 @main
 struct ReparaApp: App {
@@ -76,7 +77,9 @@ struct RootView: View {
                     DryRunView(payload: payload, bytes: bytes)
                 }
             }
-            .navigationTitle("Repara")
+            // The stage is the screen, so the title says which one rather than
+            // repeating the app's name at somebody who just opened it.
+            .navigationTitle(title(for: model.stage))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
@@ -92,6 +95,17 @@ struct RootView: View {
             }
             .sheet(isPresented: $model.showingSettings) { SettingsView() }
         }
+        .tint(Repara.ink)
+    }
+
+    private func title(for stage: AppModel.Stage) -> String {
+        switch stage {
+        case .capture: "Report"
+        case .drafting: "Drafting"
+        case .review: "Review"
+        case .filed: "Filed"
+        case .dryRan: "Dry run"
+        }
     }
 }
 
@@ -102,63 +116,159 @@ struct RootView: View {
 /// sign-up screen they do not need.
 struct LaunchView: View {
     var body: some View {
-        VStack(spacing: 16) {
-            Image(systemName: "mappin.and.ellipse")
-                .font(.system(size: 44))
-                .foregroundStyle(.tint)
-            ProgressView()
+        ZStack {
+            Repara.canvas.ignoresSafeArea()
+            VStack(spacing: 22) {
+                ReparaMark(size: 104)
+                    .shadow(color: .black.opacity(0.18), radius: 16, y: 8)
+                ProgressView().tint(Repara.ink)
+            }
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 }
 
+/// The one wait in the flow that is worth explaining while it happens: it is
+/// spending a model call, and what comes back decides which council department
+/// gets the report.
 struct DraftingView: View {
     @Environment(AppModel.self) private var model
 
     var body: some View {
-        VStack(spacing: 20) {
-            ProgressView()
-                .controlSize(.large)
-            Text("Reading the photo…")
-                .font(.headline)
-            Text("\(model.providerName) picks the report type and drafts the Portuguese. You will see and can edit both before anything is filed.")
-                .font(.footnote)
+        ZStack {
+            Repara.canvas.ignoresSafeArea()
+            VStack(spacing: 22) {
+                AmberSpinner()
+                Text("Reading the photo…")
+                    .font(.title3.weight(.semibold))
+                Text(
+                    "\(model.providerName) picks one of 127 report types and drafts the Portuguese. "
+                        + "You read and can edit both before anything is filed."
+                )
+                .font(.callout)
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
-                .padding(.horizontal, 40)
+                .fixedSize(horizontal: false, vertical: true)
+                .padding(.horizontal, 44)
+            }
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 }
 
+/// Amber, because waiting is attention rather than action, and the only place in
+/// the app where the accent moves.
+private struct AmberSpinner: View {
+    @State private var spinning = false
+
+    var body: some View {
+        Circle()
+            .trim(from: 0, to: 0.28)
+            .stroke(Repara.amber, style: StrokeStyle(lineWidth: 3, lineCap: .round))
+            .background {
+                Circle().strokeBorder(Repara.ink.opacity(0.14), lineWidth: 3)
+            }
+            .frame(width: 56, height: 56)
+            .rotationEffect(.degrees(spinning ? 360 : 0))
+            .animation(.linear(duration: 0.9).repeatForever(autoreverses: false), value: spinning)
+            .onAppear { spinning = true }
+    }
+}
+
+/// The one screen in the app that reports something irreversible having
+/// happened. It says so plainly, and it hands over the occurrence number,
+/// because that number is the only way to follow the report up.
 struct FiledView: View {
     let result: SubmitResult
     @Environment(AppModel.self) private var model
 
     var body: some View {
-        VStack(spacing: 24) {
-            Image(systemName: "checkmark.seal.fill")
-                .font(.system(size: 64))
-                .foregroundStyle(.green)
-            VStack(spacing: 8) {
-                Text("Filed").font(.title2.bold())
-                Text(result.numero)
-                    .font(.body.monospaced())
-                    .textSelection(.enabled)
-            }
-            Text("A council worker will be dispatched. There is no way to withdraw this from the app — the occurrence number above is how you follow it up.")
-                .font(.footnote)
-                .foregroundStyle(.secondary)
-                .multilineTextAlignment(.center)
-                .padding(.horizontal, 32)
+        ZStack {
+            LinearGradient(
+                colors: [Color(.systemBackground), Repara.canvas],
+                startPoint: .top, endPoint: .bottom
+            )
+            .ignoresSafeArea()
 
-            Button("Report something else") { model.startOver() }
-                .buttonStyle(.borderedProminent)
+            VStack(spacing: 16) {
+                VStack(alignment: .leading, spacing: 0) {
+                    Image(systemName: "checkmark")
+                        .font(.system(size: 26, weight: .bold))
+                        .foregroundStyle(.white)
+                        .frame(width: 56, height: 56)
+                        .background(Repara.done, in: .rect(cornerRadius: 28, style: .continuous))
+                        .shadow(color: Repara.done.opacity(0.32), radius: 14, y: 6)
+
+                    Text("Filed with the council")
+                        .font(.system(size: 28, weight: .bold))
+                        .padding(.top, 16)
+                        .fixedSize(horizontal: false, vertical: true)
+
+                    Text(
+                        "A worker will be dispatched. This cannot be withdrawn from the app — the "
+                            + "number below is how you follow it up."
+                    )
+                    .font(.callout)
+                    .foregroundStyle(.secondary)
+                    .padding(.top, 6)
+                    .fixedSize(horizontal: false, vertical: true)
+
+                    HStack {
+                        VStack(alignment: .leading, spacing: 1) {
+                            Text("Occurrence")
+                                .font(.caption2)
+                                .foregroundStyle(.secondary)
+                            Text(result.numero)
+                                .font(.system(size: 19, design: .monospaced))
+                                .textSelection(.enabled)
+                        }
+                        Spacer()
+                        Button {
+                            UIPasteboard.general.string = result.numero
+                        } label: {
+                            Image(systemName: "doc.on.doc")
+                                .font(.system(size: 17))
+                                .foregroundStyle(Repara.ink)
+                                .frame(width: 44, height: 44)
+                                .background(.quaternary, in: .circle)
+                        }
+                        .buttonStyle(.plain)
+                    }
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 12)
+                    .background(
+                        .quaternary, in: .rect(cornerRadius: 18, style: .continuous))
+                    .padding(.top, 18)
+                }
+                .padding(22)
+                .glassEffect(
+                    .regular, in: .rect(cornerRadius: Repara.Radius.bar, style: .continuous))
+
+                Button("Report something else") { model.startOver() }
+                    .buttonStyle(InkButtonStyle(height: 60))
+                    .padding(.top, 6)
+
+                // The moment somebody most wants this list is the moment they
+                // have just added to it.
+                NavigationLink {
+                    ReportsView()
+                } label: {
+                    Text("See my reports")
+                        .font(.system(size: 17, weight: .semibold))
+                        .foregroundStyle(Repara.ink)
+                        .frame(maxWidth: .infinity, minHeight: 56)
+                        .glassEffect(.regular.interactive(), in: .capsule)
+                }
+                .buttonStyle(.plain)
+            }
+            .padding(.horizontal, 20)
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 }
 
+/// What would have been posted, and the fact that it was not.
+///
+/// Green here is honest — nothing was sent is a completed, verified state, not
+/// an absence of information. That is the distinction `CautionTier.unverified`
+/// exists to protect, and this is the other side of it.
 struct DryRunView: View {
     let payload: String
     let bytes: Int
@@ -166,26 +276,53 @@ struct DryRunView: View {
 
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 16) {
-                Label("Dry run — nothing was sent", systemImage: "checkmark.shield")
-                    .font(.headline)
-                    .foregroundStyle(.orange)
+            VStack(alignment: .leading, spacing: 14) {
+                VStack(alignment: .leading, spacing: 8) {
+                    Label {
+                        Text("Nothing was sent").font(.headline)
+                    } icon: {
+                        Image(systemName: "checkmark.shield.fill")
+                    }
+                    .foregroundStyle(Repara.done)
 
-                Text("This is the exact `obj` part that would have been posted, alongside \(bytes.formatted(.byteCount(style: .file))) of multipart body including the photo.")
-                    .font(.footnote)
+                    Text(
+                        "This is the exact `obj` part that would have been posted, alongside "
+                            + "\(bytes.formatted(.byteCount(style: .file))) of multipart body "
+                            + "including the photo."
+                    )
+                    .font(.subheadline)
                     .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+                }
+                .padding(16)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(
+                    Repara.card, in: .rect(cornerRadius: Repara.Radius.card, style: .continuous))
 
-                Text(payload)
-                    .font(.caption.monospaced())
-                    .textSelection(.enabled)
-                    .padding(12)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .background(.quaternary, in: .rect(cornerRadius: 10))
+                ScrollView(.horizontal, showsIndicators: false) {
+                    Text(payload)
+                        .font(.system(size: 11.5, design: .monospaced))
+                        .foregroundStyle(Color(.systemGray5))
+                        .textSelection(.enabled)
+                        .padding(14)
+                }
+                .background(
+                    Color(red: 0.110, green: 0.110, blue: 0.118),
+                    in: .rect(cornerRadius: Repara.Radius.card, style: .continuous))
 
-                Button("Start over") { model.startOver() }
-                    .buttonStyle(.bordered)
+                HStack(spacing: 10) {
+                    Button("Back to review") { model.stage = .review }
+                        .buttonStyle(GlassButtonStyle())
+                    Button("Start over") { model.startOver() }
+                        .font(.system(size: 17))
+                        .foregroundStyle(Repara.ink)
+                        .frame(maxWidth: .infinity, minHeight: 56)
+                        .background(.quaternary, in: .capsule)
+                }
+                .padding(.top, 4)
             }
-            .padding()
+            .padding(16)
         }
+        .background(Repara.canvas)
     }
 }

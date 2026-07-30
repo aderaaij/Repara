@@ -64,10 +64,20 @@
             case "type-picker":
                 TypePickerView(selection: $pickerSelection, onPick: {})
 
+            // The sheet the red card now leads to. Presented directly because a
+            // screenshot cannot tap, and photographed at all because the whole
+            // point of the change is that this screen exists — a warning saying
+            // "don't file this" about a report nobody can see is a warning
+            // asking to be taken on faith.
+            case "occurrence-compare":
+                OccurrenceSheet(
+                    report: ScreenshotMode.bookedCollectionFixture,
+                    comparedTo: Projection.reference.wgs84)
+
             case "reports-mine":
                 NavigationStack { ReportsView(initialTab: .mine) }
 
-            case "browse-empty", "browse-results", "browse-nothing", "browse-widened":
+            case "browse-empty", "browse-results", "browse-nothing", "browse-filtered":
                 NavigationStack { ReportsView(initialTab: .nearby) }
 
             default:

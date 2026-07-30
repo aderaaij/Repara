@@ -22,17 +22,19 @@ struct WelcomeView: View {
         // taller than the screen.
         GeometryReader { proxy in
             ScrollView {
-                VStack(spacing: 32) {
+                VStack(spacing: 28) {
                     masthead
                     accountCard
                     if let error = model.error { errorNote(error) }
                     footnote
                 }
-                .padding(.horizontal, 32)
-                .padding(.vertical, 48)
+                .padding(.horizontal, 24)
+                .padding(.vertical, 44)
                 .frame(maxWidth: .infinity, minHeight: proxy.size.height)
             }
         }
+        .background(Repara.canvas)
+        .tint(Repara.ink)
         .sheet(isPresented: $showingSignIn) { SignInView() }
         .sheet(isPresented: $showingCatalogue) { catalogue }
     }
@@ -53,46 +55,55 @@ struct WelcomeView: View {
 
     // MARK: Pieces
 
+    /// The lockup, not a symbol and a title.
+    ///
+    /// "Unofficial client · Na Minha Rua LX" is part of the mark rather than a
+    /// disclaimer in Settings, because this is the first screen anybody sees and
+    /// the one place it matters that the app is visibly third-party. Nothing
+    /// here borrows the council's identity — that is a black-and-white crest and
+    /// municipal green.
     private var masthead: some View {
-        VStack(spacing: 14) {
-            Image(systemName: "mappin.and.ellipse")
-                .font(.system(size: 56))
-                .foregroundStyle(.tint)
-            Text("Repara")
-                .font(.largeTitle.bold())
+        VStack(spacing: 18) {
+            ReparaMark(size: 96)
+                .shadow(color: .black.opacity(0.18), radius: 14, y: 7)
+            ReparaLockup()
             Text("Report a problem in Lisbon's streets to the council, with the pin exactly where the problem is.")
-                .font(.body)
+                .font(.callout)
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
                 .fixedSize(horizontal: false, vertical: true)
+                .padding(.horizontal, 8)
         }
     }
 
     private var accountCard: some View {
-        VStack(spacing: 14) {
-            Text("You need a Na Minha Rua LX account")
-                .font(.headline)
-                .multilineTextAlignment(.center)
+        VStack(spacing: 12) {
+            VStack(spacing: 8) {
+                Text("You need a Na Minha Rua LX account")
+                    .font(.headline)
+                    .multilineTextAlignment(.center)
 
-            Text("Repara has no account of its own — it files under yours, so the council knows who reported the problem and can reach you about it.")
-                .font(.footnote)
-                .foregroundStyle(.secondary)
-                .multilineTextAlignment(.center)
-                .fixedSize(horizontal: false, vertical: true)
-
-            Button {
-                open(Portal.registration)
-            } label: {
-                Text("Create an account").frame(maxWidth: .infinity)
+                Text("Repara has no account of its own — it files under yours, so the council knows who reported the problem and can reach you about it.")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+                    .fixedSize(horizontal: false, vertical: true)
             }
-            .buttonStyle(.borderedProminent)
-            .controlSize(.large)
+            .padding(18)
+            .frame(maxWidth: .infinity)
+            .background(
+                Repara.card, in: .rect(cornerRadius: Repara.Radius.card, style: .continuous))
+
+            Button("Create an account") { open(Portal.registration) }
+                .buttonStyle(InkButtonStyle(height: 56))
+                .padding(.top, 2)
 
             Button("I already have one") { showingSignIn = true }
-                .controlSize(.large)
+                .buttonStyle(GlassButtonStyle(height: 52))
 
             Button("See what you can report") { showingCatalogue = true }
                 .font(.footnote)
+                .foregroundStyle(Repara.ink)
                 .padding(.top, 4)
         }
     }

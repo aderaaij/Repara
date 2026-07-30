@@ -93,13 +93,24 @@
         /// than in the script so adding a screen means touching one file.
         static let allScenes = [
             "launch", "welcome", "sign-in", "types",
-            "capture", "drafting",
-            "review", "review-booked", "review-checking", "review-failed",
+            // Both halves of Capture. `capture-empty` is the first screen a
+            // signed-in user meets and it stages nothing at all — it is here
+            // because the placeholder state is the one that has to *not* look
+            // like a camera viewfinder, and an undocumented screen is one
+            // nobody notices regressing.
+            "capture-empty", "capture", "drafting",
+            "review", "review-booked", "review-booked-far", "review-checking", "review-failed",
             "type-picker", "dry-run", "filed",
-            "reports-mine", "browse-empty", "browse-results", "browse-nothing",
-            "browse-widened",
+            "reports-mine", "occurrence-compare",
+            "browse-empty", "browse-results", "browse-nothing",
+            "browse-filtered",
             "settings", "settings-gemini",
         ]
+
+        /// The one fixture a scene needs to build a view directly rather than
+        /// reach it through the app. `Fixtures` stays private — a screenshot
+        /// harness's synthetic data has no business being visible to the app.
+        static var bookedCollectionFixture: NearByOccurrence { Fixtures.bookedCollection }
 
         // MARK: The stubbed portal
 
@@ -137,6 +148,15 @@
             // secret.
             try? Keychain.set("sk-ant-screenshot-stub", for: .claudeAPIKey)
             try? Keychain.set("AIza-screenshot-stub", for: .geminiAPIKey)
+
+            // Browse now signs in to the app API, which authenticates with a
+            // token rather than the `JSESSIONID` the rest of the app uses — and
+            // `AppSession` fetches that token from the Keychain credentials, so
+            // without these every browse scene photographs "not signed in".
+            // Stubbed like the API keys above: simulator only, DEBUG only, and
+            // posted to a `URLSession` that never opens a socket.
+            try? Keychain.set("utilizador@example.invalid", for: .portalUsername)
+            try? Keychain.set("screenshot-stub", for: .portalPassword)
             ModelSettings.provider = scene == "settings-gemini" ? .gemini : .anthropic
 
             // Model ids are shown as placeholders when unset, which is the state
@@ -178,10 +198,10 @@
                 model.account = Fixtures.account
             }
 
-            // `NearbyBrowser` reads its remembered type in `init`, which has
+            // `NearbyBrowser` reads its remembered filter in `init`, which has
             // already run by the time `applyDefaults` clears the key. Each scene
             // states its own starting point.
-            model.browse.type = nil
+            model.browse.typeFilter = nil
 
             switch scene {
             case "capture":
@@ -194,7 +214,7 @@
                 model.pin = Projection.reference.wgs84
                 model.stage = .drafting
 
-            case "review", "review-booked", "review-checking", "review-failed",
+            case "review", "review-booked", "review-booked-far", "review-checking", "review-failed",
                 "type-picker":
                 await stageReview(model, scene: scene)
 
@@ -208,7 +228,7 @@
             case "browse-empty":
                 break
 
-            case "browse-results", "browse-nothing", "browse-widened":
+            case "browse-results", "browse-nothing", "browse-filtered":
                 await stageBrowse(model, scene: scene)
 
             default:
@@ -249,11 +269,12 @@
 
         @MainActor
         private static func stageBrowse(_ model: AppModel, scene: String) async {
-            model.browse.type = Taxonomy.bundled.types.first {
-                $0.id == (scene == "browse-nothing" ? Fixtures.quietTypeId : Fixtures.litterTypeId)
-            }
+            // One request, every type — so the filter is applied *after* the
+            // search rather than being the question it asked.
             await model.browse.search(at: Projection.reference.wgs84)
-            if scene == "browse-widened" { await model.browse.widen() }
+            if scene == "browse-filtered" {
+                model.browse.typeFilter = Taxonomy.bundled.type(id: Fixtures.litterTypeId)
+            }
         }
 
         // MARK: The photo
@@ -344,8 +365,38 @@
                 return (200, Fixtures.judgeResponse, 0)
             }
 
+            // The app API's login. A different context, a different credential
+            // and a different envelope from `login.jsp` — see `AppSession`.
+            if path.hasSuffix("/publico-app/utilizador/login") {
+                return (200, Fixtures.appToken, 0)
+            }
+
+            // The area search: every type around a point, in one request.
+            //
+            // Matched on the **`-app` context**, not on "/ocorrencias", because
+            // on that API the filter query and filing a report are the same URL
+            // separated only by content type. Keying this on the path suffix
+            // alone would put a stubbed submit endpoint one Content-Type away
+            // from existing, and the rule at the top of this file is that
+            // nothing here can file anything.
+            if path.hasPrefix("/gopiv2/naminharuav2-app/ocorrencias") {
+                guard request.httpMethod == "POST" else { return (405, Data("{}".utf8), 0) }
+                switch scene {
+                case "browse-nothing": return (200, Fixtures.emptyArea, 0)
+                default: return (200, Fixtures.areaOccurrences, 0)
+                }
+            }
+
             if path.hasSuffix("/utilizador") {
                 return (200, Fixtures.utilizador, 0)
+            }
+
+            // The second request a report costs, made only when one is opened.
+            // Answered empty rather than left to 404: "no photograph on this
+            // report" is a real state worth photographing, and a stub gap
+            // rendering as a failure card documents the harness, not the app.
+            if path.hasSuffix("/fotos") {
+                return (200, Data("[]".utf8), 0)
             }
 
             if path.hasSuffix("/ocorrencias/my") {
@@ -367,7 +418,9 @@
                     switch scene {
                     case "review-checking": return (200, Fixtures.collectionNearBy, 30)
                     case "review-failed": return (503, Data("{}".utf8), 0)
-                    case "review-booked", "review-widened", "browse-widened":
+                    case "review-booked-far":
+                        return (200, Fixtures.farCollectionNearBy, 0)
+                    case "review-booked", "review-widened":
                         return (200, Fixtures.collectionNearBy, 0)
                     default: return (200, Fixtures.collectionNearBy, 0)
                     }
@@ -411,6 +464,10 @@
         /// screen worth documenting is the one still offering to look under the
         /// collection requests.
         static let quietTypeId = 97
+        /// Real ids from the bundled taxonomy: the browse filter resolves these
+        /// through `Taxonomy.bundled`, so an invented id would vanish from it.
+        static let lightingTypeId = 74
+        static let pavementTypeId = 506
 
         /// `Grafitis` — nothing reported under it *and* no siblings, so the Review
         /// screen shows neither warning. The one type the docs name as the case
@@ -426,6 +483,49 @@
                 SubmitResult.self,
                 from: Data(#"{"id": 1000900, "numero": "OCO/00900/2000"}"#.utf8))
         }
+
+        /// The app API's token. Invented, and never sent anywhere: `StubPortal`
+        /// answers every request in this process.
+        static let appToken = Data(
+            (#"{"data":{"authToken":"00000000-0000-0000-0000-000000000000"},"#
+                + #""gap":{"operationSucceeded":true}}"#).utf8)
+
+        /// The area search: several types around one point, which is the whole
+        /// point of the call. Coordinates are WGS84 here — the app API takes and
+        /// returns degrees, not EPSG:3763 — and cluster around Praça do
+        /// Comércio.
+        ///
+        /// Carries `local` on every row so the screenshot run exercises the
+        /// decoder actually dropping the address rather than merely not being
+        /// offered one.
+        static let areaOccurrences = Data(
+            """
+            {"data":{"ocos":[
+              {"id":1000000,"num":"OCO/00000/2000","desc":"Sacos de lixo deixados ao lado do contentor, já rasgados.",
+               "tipo":"Sacos ou outros lixos abandonados","tipoId":262,
+               "area":"Higiene Urbana","areaId":10,"freg":"Freguesia Exemplo",
+               "est":"Em análise","estId":"AN","lat":38.70760,"lon":-9.13660,"dist":24,
+               "local":"Rua Exemplo 1, 1000-000 Lisboa"},
+              {"id":1000001,"num":"OCO/00001/2000","desc":"Candeeiro apagado há mais de uma semana.",
+               "tipo":"Candeeiro apagado","tipoId":\(Fixtures.lightingTypeId),
+               "area":"Iluminação Pública","areaId":11,"freg":"Freguesia Exemplo",
+               "est":"Em execução","estId":"EX","lat":38.70735,"lon":-9.13700,"dist":61,
+               "local":"Rua Exemplo 9, 1000-000 Lisboa"},
+              {"id":1000002,"num":"OCO/00002/2000","desc":"Passeio levantado junto à esquina.",
+               "tipo":"Descalcetamento do passeio","tipoId":\(Fixtures.pavementTypeId),
+               "area":"Passeios e Acessibilidades","areaId":5,"freg":"Freguesia Exemplo",
+               "est":"Registado para Resolução","estId":"ENC","lat":38.70790,"lon":-9.13590,"dist":118,
+               "local":"Rua Exemplo 14, 1000-000 Lisboa"},
+              {"id":1000003,"num":"OCO/00003/2021","desc":"Lixo acumulado junto ao jardim.",
+               "tipo":"Sacos ou outros lixos abandonados","tipoId":262,
+               "area":"Higiene Urbana","areaId":10,"freg":"Freguesia Exemplo",
+               "est":"Resolvida","estId":"RS","lat":38.70700,"lon":-9.13620,"dist":73,
+               "local":"Rua Exemplo 3, 1000-000 Lisboa"}
+            ]},"gap":{"operationSucceeded":true}}
+            """.utf8)
+
+        /// A point with nothing open around it, for the tick.
+        static let emptyArea = Data(#"{"data":{"ocos":[]},"gap":{"operationSucceeded":true}}"#.utf8)
 
         static let utilizador = Data(
             """
@@ -530,6 +630,37 @@
         /// `ocoTipo=256`. The open entry sits 8 m from the reference point — near
         /// enough that the mattress on the pavement and the report about to be
         /// filed on top of it are plainly the same thing.
+        /// The same booked collection, moved to the far end of the window this
+        /// warning can fire in at all.
+        ///
+        /// Not a variation for variation's sake. `apply` already drops anything
+        /// past `Submitter.duplicateRadiusMetres`, so the whole range this
+        /// warning speaks about is 0–50 m — and a real collection request
+        /// across the road at the far end of it was still getting a filled red
+        /// "don't file this". That is the weakest evidence in the window
+        /// drawing the loudest card in the set. It has a scene so the softer of
+        /// the two can never quietly regress into the louder one.
+        static let farCollectionNearBy = geoAttributes(
+            nearBy: """
+                {
+                  "id": 1000100,
+                  "numero": "OCO/00100/2000",
+                  "requerente": "Sicrano De Tal",
+                  "email": "SICRANO.DETAL@EXAMPLE.INVALID",
+                  "criador_id": 999900,
+                  "local": "Rua Exemplo 210, 1000-000 Lisboa",
+                  "descricao": "Colchão e duas cadeiras para recolha.",
+                  "tipo": "Remoção-Monstros-Pedido de recolha",
+                  "tipo_id": 256,
+                  "geo_x": -87226.3457760187,
+                  "geo_y": -106170.49242727536,
+                  "area": "Higiene Urbana",
+                  "area_oco_id": 10,
+                  "freg_descricao": "Freguesia Exemplo",
+                  "naminharua_estado": "Em curso"
+                }
+                """)
+
         static let collectionNearBy = geoAttributes(
             nearBy: """
                 {
@@ -575,6 +706,15 @@
         /// `NearByOccurrence` declares no `CodingKey` for any of them, so none
         /// survives parsing and none can reach a screenshot or a model provider.
         /// See `PrivacyTests`.
+        /// The booked collection, decoded — for the sheet that compares it
+        /// against the pin. Same bytes the warning itself is built from, so the
+        /// screenshot cannot drift from the card that leads to it.
+        static var bookedCollection: NearByOccurrence {
+            let attributes = try! JSONDecoder().decode(
+                GeoAttributes.self, from: collectionNearBy)
+            return attributes.nearBy[0]
+        }
+
         private static func geoAttributes(nearBy: String) -> Data {
             Data(
                 """

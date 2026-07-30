@@ -22,21 +22,26 @@ struct PinMap: View {
     @State private var position: MapCameraPosition = .automatic
     @State private var hasCentred = false
 
+    /// The zoom, for clustering. Seeded with what `onAppear` opens at.
+    @State private var metresTall = 120.0
+    @State private var mapHeight: CGFloat = 220
+
     var body: some View {
         Map(position: $position) {
-            ForEach(neighbours) { neighbour in
-                Marker(
-                    neighbour.tipo,
-                    systemImage: neighbour.isResolved ? "checkmark" : "exclamationmark",
-                    coordinate: CLLocationCoordinate2D(
-                        latitude: neighbour.coordinate.lat, longitude: neighbour.coordinate.lng)
-                )
-                .tint(neighbour.isResolved ? .gray : .orange)
-            }
+            // Neighbours of one type on one doorstep are drawn as a count, so a
+            // busy corner cannot hide the crosshair under a heap of balloons.
+            // The pin being placed is what this screen is for.
+            ClusteredPins(
+                clusters: neighbours.clustered(
+                    within: clusterRadiusMetres(metresTall: metresTall, mapHeight: mapHeight)),
+                label: \.tipo
+            )
         }
         .mapStyle(.standard(elevation: .flat))
         .overlay { Crosshair(isResolving: isResolving) }
+        .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { mapHeight = $0 }
         .onMapCameraChange(frequency: .onEnd) { context in
+            metresTall = mapMetresTall(context.region.span)
             let centre = context.region.center
             let moved = LatLng(lat: centre.latitude, lng: centre.longitude)
             // Ignore the settle that follows our own initial centring.

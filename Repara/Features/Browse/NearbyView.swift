@@ -5,16 +5,36 @@ import SwiftUI
 /// What has already been reported around a point — the read-only half of the
 /// app.
 ///
-/// The portal has no "list occurrences" endpoint. The only way to see other
-/// people's reports is `getGeoAttributes`, which answers for **one occurrence
-/// type at a time** within about 100 m, so this screen is honest about that
-/// rather than pretending to show a whole city: pick a type, search a place,
-/// one request. Asking for all 127 types would be 127 requests at a municipal
-/// service, which is not a thing to do because a map looked sparse.
+/// **One look, every type, one request.** The app API's area search answers
+/// about all 127 occurrence types at once within a radius, which is what the
+/// council's own app shows you and what somebody actually wants to know:
+/// what is going on where I am standing.
 ///
-/// Everything shown comes through `NearByOccurrence`, so the names and emails
-/// the server sends alongside each report were never decoded — see
-/// `PrivacyTests`. Nothing on this screen can file anything.
+/// This screen used to be shaped by the opposite constraint. `getGeoAttributes`
+/// answers about a single type, so browsing began by making the user pick one,
+/// every answer carried a caveat that it covered 1 of 127, and looking under
+/// related types was an offer priced in municipal requests. All of that was
+/// scaffolding around a limit that no longer applies, and it has gone — the
+/// type is now a filter over results already in hand, free to change and free
+/// to clear.
+///
+/// The scope is still stated next to the answer rather than in a footer, and it
+/// is still not a clearance: "all types within 225 m" is a real boundary, and
+/// the wording never claims more than the circle drawn on the map.
+///
+/// The three ways it can answer are kept visibly apart, because two of them
+/// used to look identical:
+///
+/// - **Found something** — amber keyline for open, grey for closed.
+/// - **Nothing open nearby** — a tick, with the radius *inside the sentence*, so
+///   it reads as "checked this area" and never as "nothing is wrong anywhere".
+/// - **Could not check** — the hatch card. A failed search shows it instead of an
+///   empty list, because a 503 that renders as a blank screen is a lie.
+///
+/// Everything shown comes through `NearByOccurrence`, so the addresses, names
+/// and emails the servers send alongside each report were never decoded — see
+/// `PrivacyTests` and `AreaSearchTests`. Nothing on this screen can file
+/// anything.
 struct NearbyView: View {
     @Environment(AppModel.self) private var model
     let browser: NearbyBrowser
@@ -23,7 +43,26 @@ struct NearbyView: View {
     /// Where the map is now, as opposed to where the answer on screen came from.
     @State private var centre: LatLng?
     @State private var showingTypePicker = false
-    @State private var expanded: Set<Int> = []
+
+    /// The report whose sheet is open, from a row or from a pin.
+    @State private var detail: NearByOccurrence?
+
+    /// Map selection, which is a cluster id rather than an occurrence id: a
+    /// badge covering several reports has no single report to open, so only
+    /// single-pin clusters lead anywhere.
+    @State private var selectedPin: Int?
+
+    /// Closed reports start collapsed. They are the bulk of every answer the
+    /// portal gives — the verified capture was 89 of 89 — and a screen that
+    /// opens with eighty-nine grey rows buries the one amber row that could
+    /// change what somebody does.
+    @State private var showsClosed = false
+
+    /// How tall the map is on the ground and in points, which together are the
+    /// zoom. Seeded with what `centreCamera` opens at, so the first draw
+    /// clusters correctly rather than after the first camera settle.
+    @State private var metresTall = 400.0
+    @State private var mapHeight = Self.mapHeightPoints
 
     /// The last centre this view set itself, so a camera settle can be told
     /// apart from a finger. Once the map has been moved deliberately, a late GPS
@@ -40,11 +79,24 @@ struct NearbyView: View {
             Divider()
             results
         }
+        .background(Repara.canvas)
         .sheet(isPresented: $showingTypePicker) {
             @Bindable var browser = browser
-            TypePickerView(selection: $browser.type) {
-                Task { await searchHere() }
+            // Nothing is searched on dismissal any more: narrowing to a type
+            // filters what is already here, so the picker spends nothing.
+            TypePickerView(selection: $browser.typeFilter)
+        }
+        .sheet(item: $detail) { report in
+            OccurrenceSheet(report: report)
+        }
+        .onChange(of: selectedPin) { _, tag in
+            // A tapped pin opens the same sheet a tapped row does. Cleared
+            // straight away so tapping the same pin twice opens it twice.
+            guard let tag, let report = browser.results.first(where: { $0.id == tag }) else {
+                return
             }
+            selectedPin = nil
+            detail = report
         }
         .task { await autoSearch() }
         .onChange(of: model.location.coordinate) { _, fix in
@@ -61,7 +113,7 @@ struct NearbyView: View {
 
     private var map: some View {
         ZStack(alignment: .bottom) {
-            Map(position: $camera) {
+            Map(position: $camera, selection: $selectedPin) {
                 UserAnnotation()
 
                 // What the answer on screen actually covered. Drawn around the
@@ -70,31 +122,31 @@ struct NearbyView: View {
                     MapCircle(
                         center: CLLocationCoordinate2D(
                             latitude: searchedAt.lat, longitude: searchedAt.lng),
-                        radius: Geo.nearByRadiusMetres
+                        radius: Double(browser.radiusMetres)
                     )
-                    .foregroundStyle(.orange.opacity(0.06))
-                    .stroke(.orange.opacity(0.35), lineWidth: 1)
+                    .foregroundStyle(Repara.amber.opacity(0.08))
+                    .stroke(Repara.amber.opacity(0.45), lineWidth: 1)
                 }
 
-                ForEach(browser.results) { report in
-                    // Same convention as the Review map: orange and shouting
-                    // for open, grey and ticked for done.
-                    Marker(
-                        distanceLabel(report),
-                        systemImage: report.isResolved ? "checkmark" : "exclamationmark",
-                        coordinate: CLLocationCoordinate2D(
-                            latitude: report.coordinate.lat, longitude: report.coordinate.lng)
-                    )
-                    .tint(report.isResolved ? .gray : .orange)
+                // Same convention as the Review map: amber and shouting for
+                // open, grey and ticked for done — and a count where several
+                // of one kind land on the same few points of glass.
+                ClusteredPins(clusters: clusters, label: distanceLabel) { cluster in
+                    zoom(into: cluster)
                 }
             }
             .mapStyle(.standard(elevation: .flat))
             .mapControls { MapUserLocationButton() }
             .overlay { CentreReticle() }
+            .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { mapHeight = $0 }
             .onMapCameraChange(frequency: .onEnd) { context in
                 let point = context.region.center
                 let moved = LatLng(lat: point.latitude, lng: point.longitude)
                 centre = moved
+                // The zoom, for clustering. Read on settle rather than
+                // continuously: pins that re-merge under a moving finger are
+                // harder to read than pins that resolve when it lifts.
+                metresTall = mapMetresTall(context.region.span)
                 if let programmaticCentre,
                     Projection.forward(moved).distance(to: Projection.forward(programmaticCentre))
                         > 5
@@ -105,9 +157,23 @@ struct NearbyView: View {
             .onAppear(perform: centreOnStart)
 
             searchButton
-                .padding(.bottom, 12)
+                .padding(.bottom, 14)
         }
-        .frame(height: 280)
+        .frame(height: Self.mapHeightPoints)
+    }
+
+    private static let mapHeightPoints: CGFloat = 280
+
+    /// The pins as drawn: one per report until they overlap, then one badge per
+    /// group of the same type and the same state.
+    ///
+    /// Recomputed as the camera settles rather than held in state, which is what
+    /// makes a zoom take the clusters apart. Ninety reports is a few thousand
+    /// distance comparisons on numbers already in memory — cheaper than the
+    /// redraw it feeds.
+    private var clusters: [MapCluster] {
+        browser.results.clustered(
+            within: clusterRadiusMetres(metresTall: metresTall, mapHeight: mapHeight))
     }
 
     /// Where the next search would centre. The circle on the map shows where the
@@ -133,232 +199,448 @@ struct NearbyView: View {
 
     @ViewBuilder private var searchButton: some View {
         if browser.isSearching {
-            Label("Searching…", systemImage: "ellipsis")
-                .font(.footnote.bold())
-                .padding(.horizontal, 14)
-                .padding(.vertical, 8)
-                .background(.thinMaterial, in: .capsule)
+            GlassChip {
+                HStack(spacing: 8) {
+                    ProgressView().controlSize(.small)
+                    Text("Searching…")
+                }
+            }
         } else if let centre, browser.shouldOfferSearch(at: centre) {
             Button {
                 Task { await searchHere() }
             } label: {
-                Label(
-                    browser.searchedAt == nil ? "Search here" : "Search this area",
-                    systemImage: "magnifyingglass"
-                )
-                .font(.footnote.bold())
-                .padding(.horizontal, 14)
-                .padding(.vertical, 8)
-                .background(.thinMaterial, in: .capsule)
+                GlassChip {
+                    HStack(spacing: 8) {
+                        Image(systemName: "magnifyingglass")
+                        Text(browser.searchedAt == nil ? "Search here" : "Search this area")
+                    }
+                    .foregroundStyle(Repara.ink)
+                }
             }
             .buttonStyle(.plain)
-            .shadow(radius: 3)
         }
     }
 
-    // MARK: Type
+    // MARK: Type filter
 
+    /// What the answer covers, and the filter over it.
+    ///
+    /// The filter is a *narrowing*, never a question — so it carries a clear
+    /// button rather than only a picker. Somebody who filtered to potholes and
+    /// then wonders what else is around must be one tap from the whole answer,
+    /// because everything needed to show it is already in memory.
     private var typeBar: some View {
-        Button {
-            showingTypePicker = true
-        } label: {
-            HStack(alignment: .firstTextBaseline) {
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(browser.type?.descricao ?? "Choose a report type")
-                        .font(.subheadline.weight(.medium))
-                        .foregroundStyle(browser.type == nil ? .secondary : .primary)
-                        .multilineTextAlignment(.leading)
-                    if let type = browser.type {
-                        Text(type.area)
+        HStack(spacing: 10) {
+            Button {
+                showingTypePicker = true
+            } label: {
+                HStack(alignment: .firstTextBaseline) {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(browser.typeFilter?.descricao ?? "All types")
+                            .font(.callout.weight(.medium))
+                            .foregroundStyle(.primary)
+                            .multilineTextAlignment(.leading)
+                        Text(scopeLine)
                             .font(.caption)
                             .foregroundStyle(.secondary)
+                            .multilineTextAlignment(.leading)
                     }
+                    Spacer(minLength: 8)
+                    Image(systemName: "line.3.horizontal.decrease.circle")
+                        .font(.callout)
+                        .foregroundStyle(.tertiary)
                 }
-                Spacer(minLength: 8)
-                Image(systemName: "chevron.up.chevron.down")
-                    .font(.caption)
-                    .foregroundStyle(.tertiary)
+                .contentShape(.rect)
             }
-            .padding(.horizontal)
-            .padding(.vertical, 10)
-            .contentShape(.rect)
+            .buttonStyle(.plain)
+
+            if browser.typeFilter != nil {
+                Button {
+                    browser.typeFilter = nil
+                } label: {
+                    Text("Clear")
+                        .font(.subheadline.weight(.medium))
+                        .foregroundStyle(Repara.ink)
+                }
+                .buttonStyle(.plain)
+            }
         }
-        .buttonStyle(.plain)
-        .background(.background)
+        .padding(.horizontal, 16)
+        .padding(.vertical, 11)
+        .background(Repara.card)
+    }
+
+    /// Never a clearance. The radius is always named, and when a filter is on it
+    /// says what is being hidden as well as what is shown — a filtered screen
+    /// that looks empty must not read as an empty street.
+    private var scopeLine: String {
+        let radius = browser.radiusMetres
+        guard browser.typeFilter != nil else {
+            return "Every type, within \(radius) m · one request"
+        }
+        let hidden = browser.found.count - browser.results.count
+        return hidden > 0
+            ? "Filtered · \(hidden) other report\(hidden == 1 ? "" : "s") nearby are hidden"
+            : "Filtered · within \(radius) m"
     }
 
     // MARK: Results
 
     private var results: some View {
-        List {
-            if let failure = browser.failure {
-                Section {
-                    Text(failure).font(.footnote).foregroundStyle(.red)
-                }
-            }
-
-            if !browser.results.isEmpty {
-                widenOffer
-
-                Section {
-                    ForEach(browser.results) { report in
-                        row(report)
+        ScrollView {
+            VStack(spacing: 12) {
+                // A failed search shows the hatch card, not an empty list.
+                // Nothing is listed because nothing was learned, and it says so.
+                if let failure = browser.failure {
+                    CautionCard(
+                        .unverified,
+                        title: "Not checked — not cleared",
+                        message:
+                            "The council's server did not answer for this area, so nothing is "
+                            + "being shown: an empty list here would be a lie. \(failure)",
+                        systemImage: "wifi.exclamationmark"
+                    ) {
+                        Button {
+                            Task { await searchHere() }
+                        } label: {
+                            Label("Search again", systemImage: "arrow.clockwise")
+                                .font(.subheadline.weight(.semibold))
+                                .foregroundStyle(Repara.onInk)
+                                .padding(.horizontal, 16)
+                                .frame(minHeight: 44)
+                                .background(Repara.unknownInk, in: .capsule)
+                        }
+                        .buttonStyle(.plain)
+                        .padding(.top, 2)
                     }
-                } header: {
-                    Text(
-                        "\(browser.results.count) reported within about \(Int(Geo.nearByRadiusMetres)) m"
-                    )
-                } footer: {
-                    Text(
-                        browser.isWidened
-                            ? "\(browser.includedTypes.count) types searched, one request each. Nothing on this screen files anything."
-                            : "One search asks the council's server once, for one type. Every other type is out there too — it just takes another search. Nothing on this screen files anything."
-                    )
+                }
+
+                if !browser.results.isEmpty {
+                    resultsList
+                    Text("Nothing on this screen files anything.")
+                        .reparaFootnote()
+                } else if showsNothingFound {
+                    nothingFound
                 }
             }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 12)
         }
-        .listStyle(.plain)
         .refreshable {
             // The explicit way to get past the cache, for a place that was
-            // searched a while ago. A widened look stays widened — dropping back
-            // to one type on a refresh would quietly hide reports that were on
-            // screen a second ago.
+            // searched a while ago. The type filter is untouched: it is a view
+            // over the answer, not part of the question.
             guard let target = browser.searchedAt ?? centre else { return }
-            let wasWidened = browser.isWidened
             await browser.search(at: target, refreshing: true)
-            if wasWidened { await browser.widen() }
         }
         .overlay { emptyState }
     }
 
-    // MARK: Widening
-
-    /// The offer to look under the types that could be holding the same problem.
+    /// Open reports first and in full; closed ones behind one row that says how
+    /// many there are.
     ///
-    /// Only ever an offer. It appears when the selected type actually has
-    /// siblings, which is what makes it worth reading — a permanent "search
-    /// wider" button teaches nobody anything, whereas this appearing on litter
-    /// and not on graffiti says something true about how the council works.
-    @ViewBuilder private var widenOffer: some View {
-        let related = browser.relatedTypes
-        if !related.isEmpty, browser.searchedAt != nil, !browser.isSearching {
-            Section {
-                Button {
-                    Task { await browser.widen() }
-                } label: {
-                    Label(widenPrompt(related), systemImage: "arrow.triangle.branch")
-                        .font(.footnote)
+    /// The portal's answer is overwhelmingly closed — the verified capture was
+    /// 89 of 89 — because `nearBy` is the history of a spot and the council
+    /// closes litter reports in days. Listing all of it at equal weight made the
+    /// screen a wall of grey with the live report somewhere inside it.
+    ///
+    /// The count still leads, because on this screen the number *is* the
+    /// finding: eighty-nine closed reports on one corner is what "this keeps
+    /// happening here" looks like in municipal data.
+    private var resultsList: some View {
+        let open = browser.results.filter { !$0.isResolved }
+        let closed = browser.results.filter(\.isResolved)
+
+        return VStack(spacing: 8) {
+            summary(open: open.count, closed: closed)
+
+            if !open.isEmpty {
+                CardGroup {
+                    ForEach(Array(open.enumerated()), id: \.element.id) { index, report in
+                        if index > 0 { RowDivider() }
+                        row(report)
+                    }
                 }
-                ForEach(related) { candidate in
-                    Text(candidate.type.descricao)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
+            }
+
+            if !closed.isEmpty {
+                CardGroup {
+                    DisclosureRow(
+                        systemImage: "clock.arrow.circlepath",
+                        title: "\(closed.count) closed report\(closed.count == 1 ? "" : "s")",
+                        subtitle: closedSubtitle(closed),
+                        isExpanded: $showsClosed
+                    ) {
+                        ForEach(closed) { report in
+                            RowDivider()
+                            row(report)
+                        }
+                    }
                 }
-            } footer: {
+
                 Text(
-                    "\(related.count) more request\(related.count == 1 ? "" : "s") to the council's server, one per type."
+                    "A finished report is a reason to file — if the problem is back in the "
+                        + "street, the council needs telling again."
                 )
+                .reparaFootnote()
             }
         }
     }
 
-    private func widenPrompt(_ related: [RelatedType]) -> String {
-        related.contains { $0.relation == .collectedByRequest }
-            ? "Things like this are also collected by request — check whether one is already booked here"
-            : "This could also have been filed under another type — check those too"
+    /// What was found, in one or two lines, before any row is read.
+    ///
+    /// The zero-open case still carries the trap it always did, for a different
+    /// reason. It is no longer "we only asked about 1 of 127 types" — the answer
+    /// covers all of them — but it *is* still bounded by a radius, and by
+    /// whatever filter is on. So the boundary goes **inside the sentence**, and
+    /// there is nothing green on it: this is a statement about a circle, not a
+    /// verdict on a street.
+    @ViewBuilder private func summary(open: Int, closed: [NearByOccurrence]) -> some View {
+        if open == 0 {
+            VStack(alignment: .leading, spacing: 3) {
+                (Text("Nothing open ") + Text(scopePhrase).italic() + Text(" here"))
+                    .font(.title3.weight(.semibold))
+                    .fixedSize(horizontal: false, vertical: true)
+
+                Text(closedLine(closed))
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.horizontal, 4)
+            .padding(.bottom, 2)
+        } else {
+            HStack(alignment: .firstTextBaseline) {
+                Text("\(open) open within \(browser.radiusMetres) m")
+                    .font(.callout.weight(.semibold))
+                Spacer()
+                Text("\(closed.count) closed")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+            .padding(.horizontal, 4)
+        }
     }
 
+    /// What the "nothing open" claim is actually scoped to. Names the filter
+    /// when there is one, so a narrowed screen can never be read as an empty
+    /// neighbourhood.
+    private var scopePhrase: String {
+        if let type = browser.typeFilter {
+            return "under \(type.descricao.lowercased())"
+        }
+        return "within \(browser.radiusMetres) m"
+    }
+
+    /// Five closed reports on one corner is a coincidence; eighty-nine is a fact
+    /// about the place. Only the second gets to say so — and it says it with the
+    /// years, because "63 closed since 2021, 20 of them this year" is a street
+    /// the council is losing, where "63 closed" is only a heap.
+    ///
+    /// The years come off the report numbers and can be absent (see
+    /// `NearByOccurrence.filedYear`), so every clause here is optional and the
+    /// sentence still reads without any of them.
+    private func closedLine(_ closed: [NearByOccurrence]) -> String {
+        let count = closed.count
+        let scope = "within \(browser.radiusMetres) m"
+        var line = "\(count) closed report\(count == 1 ? "" : "s") \(scope)"
+
+        if let years = closed.filedYears {
+            line += years.lowerBound == years.upperBound
+                ? ", filed in \(years.lowerBound)"
+                : ", filed since \(years.lowerBound)"
+        }
+
+        let thisYear = closed.filed(in: Self.currentYear)
+        if thisYear >= Self.chronicThreshold {
+            return line + " — \(thisYear) of them this year alone."
+        }
+        if count >= Self.chronicThreshold {
+            return line + " — this keeps happening here."
+        }
+        return line + "."
+    }
+
+    private static let chronicThreshold = 5
+
+    private static var currentYear: Int {
+        Calendar.current.component(.year, from: .now)
+    }
+
+    /// The one line the collapsed history gets to say for itself. The span goes
+    /// first: how far back this reaches is the reason to open it.
+    private func closedSubtitle(_ closed: [NearByOccurrence]) -> String {
+        guard let years = closed.filedYears else {
+            return "Context — never an argument against filing"
+        }
+        let span =
+            years.lowerBound == years.upperBound
+            ? "\(years.lowerBound)"
+            : "\(years.lowerBound)–\(years.upperBound)"
+        return "\(span) · context, never an argument against filing"
+    }
+
+    /// Amber keyline for open, grey for closed, and the closed ones sit on a
+    /// dimmed row. Visibly present, visibly not open — which is the whole job,
+    /// because a closed report is context and never an argument against filing.
+    ///
+    /// The whole row opens the detail sheet. It used to unclip its own text,
+    /// which meant a tap did something different depending on how long somebody
+    /// else's description happened to be.
     private func row(_ report: NearByOccurrence) -> some View {
         let isOpen = !report.isResolved
         let text = report.descricao?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
 
-        return VStack(alignment: .leading, spacing: 4) {
-            HStack {
-                Text(report.numero)
-                    .font(.subheadline.monospaced())
-                Spacer()
-                Text(report.estado)
+        return HStack(alignment: .top, spacing: 12) {
+            RoundedRectangle(cornerRadius: 3)
+                .fill(isOpen ? Repara.amber : Color(.systemGray4))
+                .frame(width: 5)
+
+            VStack(alignment: .leading, spacing: 4) {
+                HStack(alignment: .firstTextBaseline, spacing: 10) {
+                    Text(report.numero)
+                        .font(.subheadline.monospaced())
+                        .foregroundStyle(isOpen ? .primary : .secondary)
+                    Spacer(minLength: 8)
+                    StatusChip(text: report.estado, tone: isOpen ? .open : .context)
+                }
+
+                if !text.isEmpty {
+                    Text(text)
+                        .font(.callout)
+                        .foregroundStyle(isOpen ? .primary : .secondary)
+                        .lineLimit(3)
+                }
+
+                // Always, unless filtered to a single type — the list spans
+                // every type by default, so a row that does not say which one
+                // it is cannot be read.
+                if browser.typeFilter == nil, !report.tipo.isEmpty {
+                    Text(report.tipo)
+                        .font(.caption.weight(.medium))
+                        .foregroundStyle(.secondary)
+                }
+
+                Text(metaLine(report))
                     .font(.caption)
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 3)
-                    .background(
-                        isOpen ? Color.orange.opacity(0.2) : Color.secondary.opacity(0.15),
-                        in: .capsule)
-            }
-
-            if !text.isEmpty {
-                Text(text)
-                    .font(.footnote)
-                    .lineLimit(expanded.contains(report.id) ? nil : 3)
-            }
-
-            // Only once the list spans types. Until then every row is the type
-            // named in the bar above, and repeating it on each one is noise.
-            if browser.isWidened, !report.tipo.isEmpty {
-                Text(report.tipo)
-                    .font(.caption2.weight(.medium))
                     .foregroundStyle(.secondary)
             }
 
-            Text("\(distanceLabel(report)) away · \(report.freguesia)")
-                .font(.caption)
-                .foregroundStyle(.secondary)
+            Image(systemName: "chevron.right")
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(.tertiary)
+                .padding(.top, 2)
         }
-        .padding(.vertical, 2)
+        .padding(.horizontal, 16)
+        .padding(.vertical, 14)
+        .background(isOpen ? Color.clear : Color(.systemFill).opacity(0.35))
         .contentShape(.rect)
-        .onTapGesture {
-            // There is no occurrence-detail endpoint in the captured session, so
-            // this is the whole of what can be shown — long descriptions just
-            // stop being clipped.
-            guard !text.isEmpty else { return }
-            if expanded.contains(report.id) {
-                expanded.remove(report.id)
-            } else {
-                expanded.insert(report.id)
+        .onTapGesture { detail = report }
+    }
+
+    /// Year, distance, freguesia. The year leads because it is the only thing
+    /// here that says whether this is history or now — and it is absent rather
+    /// than guessed when the number does not carry one.
+    private func metaLine(_ report: NearByOccurrence) -> String {
+        let parts = [
+            report.filedYear.map(String.init),
+            distancePhrase(report.distance),
+            report.freguesia.isEmpty ? nil : report.freguesia,
+        ]
+        return parts.compactMap { $0 }.joined(separator: " · ")
+    }
+
+    // MARK: Nothing found
+
+    private var showsNothingFound: Bool {
+        browser.hasSearched && !browser.isSearching && browser.failure == nil
+    }
+
+    /// **The only green tick on this screen**, and the boundary is inside the
+    /// sentence.
+    ///
+    /// The tick is safe here for the same reason it always was: it says what was
+    /// checked. It used to name the type, because the answer covered 1 of 127.
+    /// It now names the radius, because the answer covers every type inside a
+    /// circle and nothing outside it — a real boundary, just a different one.
+    ///
+    /// The filtered case is split out and gets **no tick at all**. "Nothing
+    /// matched your filter" is not a check of anything, and a green mark over it
+    /// would be the screen congratulating itself for a question the user
+    /// narrowed.
+    @ViewBuilder private var nothingFound: some View {
+        if let type = browser.typeFilter, !browser.found.isEmpty {
+            VStack(spacing: 0) {
+                Image(systemName: "line.3.horizontal.decrease.circle")
+                    .font(.system(size: 40, weight: .light))
+                    .foregroundStyle(.secondary)
+
+                Text("Nothing under this type here")
+                    .font(.title3.bold())
+                    .multilineTextAlignment(.center)
+                    .padding(.top, 14)
+
+                (Text("No report of ") + Text(type.descricao.lowercased()).italic()
+                    + Text(" within \(browser.radiusMetres) m — but ")
+                    + Text("\(browser.found.count) other report")
+                    + Text(browser.found.count == 1 ? "" : "s")
+                    + Text(" nearby are hidden by this filter."))
+                    .font(.callout)
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .padding(.top, 7)
+
+                Button {
+                    browser.typeFilter = nil
+                } label: {
+                    Text("Show all types")
+                        .padding(.horizontal, 20)
+                        .padding(.vertical, 14)
+                }
+                .buttonStyle(InkButtonStyle(height: 52))
+                .padding(.top, 18)
             }
+            .padding(.horizontal, 10)
+            .padding(.top, 26)
+        } else {
+            VStack(spacing: 0) {
+                Image(systemName: "checkmark.circle")
+                    .font(.system(size: 44, weight: .light))
+                    .foregroundStyle(Repara.done)
+
+                Text("Nothing open within \(browser.radiusMetres) m")
+                    .font(.title3.bold())
+                    .multilineTextAlignment(.center)
+                    .padding(.top, 14)
+
+                Text(
+                    "No open report of any type inside that circle. Move the map and search "
+                        + "again to check somewhere else — this says nothing about the next street."
+                )
+                .font(.callout)
+                .foregroundStyle(.secondary)
+                .multilineTextAlignment(.center)
+                .fixedSize(horizontal: false, vertical: true)
+                .padding(.top, 7)
+            }
+            .padding(.horizontal, 10)
+            .padding(.top, 26)
         }
     }
 
     @ViewBuilder private var emptyState: some View {
-        if browser.type == nil {
-            ContentUnavailableView {
-                Label("Pick a type first", systemImage: "line.3.horizontal.decrease.circle")
-            } description: {
-                Text(
-                    "The portal answers for one occurrence type at a time, so browsing starts with choosing one."
+        if browser.results.isEmpty, !browser.hasSearched, !browser.isSearching,
+            browser.failure == nil
+        {
+            ContentUnavailableView(
+                "Search where you are looking",
+                systemImage: "magnifyingglass",
+                description: Text(
+                    "Move the map to the place you are curious about and tap Search here."
                 )
-            } actions: {
-                Button("Choose a report type") { showingTypePicker = true }
-                    .buttonStyle(.borderedProminent)
-            }
-        } else if browser.results.isEmpty && !browser.isSearching && browser.failure == nil {
-            if browser.hasSearched {
-                // The most important place the offer appears: an empty answer
-                // under one type is exactly when somebody concludes the area is
-                // clear, and the portal only ever answered about one type.
-                ContentUnavailableView {
-                    Label("Nothing of this type here", systemImage: "checkmark.circle")
-                } description: {
-                    Text(
-                        "No open or closed \(browser.type?.descricao.lowercased() ?? "report") within about \(Int(Geo.nearByRadiusMetres)) m of that point. The portal only answers about the type asked for, so this is not the same as nothing being here."
-                    )
-                } actions: {
-                    if !browser.relatedTypes.isEmpty, browser.searchedAt != nil {
-                        Button(widenPrompt(browser.relatedTypes)) {
-                            Task { await browser.widen() }
-                        }
-                        .buttonStyle(.borderedProminent)
-                    }
-                }
-            } else {
-                ContentUnavailableView(
-                    "Search where you are looking",
-                    systemImage: "magnifyingglass",
-                    description: Text(
-                        "Move the map to the place you are curious about and tap Search here."
-                    )
-                )
-            }
+            )
         }
     }
 
@@ -369,6 +651,37 @@ struct NearbyView: View {
         await browser.search(at: target)
     }
 
+    /// Tapping a badge zooms to what it covers, which is how a count turns back
+    /// into the reports it counted.
+    ///
+    /// Costs the council nothing: this only moves the camera over reports
+    /// already in hand. Reports filed on the exact same doorstep stay one badge
+    /// however far in it goes — there is no zoom that separates two pins a
+    /// metre apart on a phone — and the count is still readable, which is why
+    /// this is a shortcut and the list below is the answer.
+    private func zoom(into cluster: MapCluster) {
+        let points = cluster.members.map(\.point)
+        let widest = max(
+            (points.map(\.x).max() ?? 0) - (points.map(\.x).min() ?? 0),
+            (points.map(\.y).max() ?? 0) - (points.map(\.y).min() ?? 0)
+        )
+        // Three times the spread, so the members land well apart rather than at
+        // the very edges, with a floor for the ones sitting on top of each other.
+        let across = max(widest * 3, 40)
+
+        centre = cluster.centre
+        programmaticCentre = cluster.centre
+        withAnimation(.easeInOut(duration: 0.35)) {
+            camera = .region(
+                MKCoordinateRegion(
+                    center: CLLocationCoordinate2D(
+                        latitude: cluster.centre.lat, longitude: cluster.centre.lng),
+                    latitudinalMeters: across,
+                    longitudinalMeters: across
+                ))
+        }
+    }
+
     /// The one search this screen makes without being asked, and only ever with
     /// a real fix in hand.
     ///
@@ -376,7 +689,7 @@ struct NearbyView: View {
     /// Comércio because the GPS had not answered yet is a request wasted on a
     /// place nobody asked about.
     private func autoSearch() async {
-        guard !didAutoSearch, browser.type != nil, !browser.hasSearched else { return }
+        guard !didAutoSearch, !browser.hasSearched else { return }
         guard let fix = model.location.coordinate else { return }
         didAutoSearch = true
         await browser.search(at: fix)
