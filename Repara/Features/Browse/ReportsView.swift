@@ -30,8 +30,8 @@ struct ReportsView: View {
                 Text("Nearby").tag(Tab.nearby)
             }
             .pickerStyle(.segmented)
-            .padding(.horizontal)
-            .padding(.bottom, 8)
+            .padding(.horizontal, 12)
+            .padding(.bottom, 10)
 
             switch tab {
             case .mine:
@@ -40,6 +40,7 @@ struct ReportsView: View {
                 NearbyView(browser: model.browse)
             }
         }
+        .background(Repara.canvas)
         .navigationTitle("Reports")
         .navigationBarTitleDisplayMode(.inline)
     }

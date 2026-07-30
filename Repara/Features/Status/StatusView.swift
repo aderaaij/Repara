@@ -2,6 +2,11 @@ import ReparaCore
 import SwiftUI
 
 /// `GET /ocorrencias/my` — what you have filed, and where it got to.
+///
+/// The status comes from the council and is shown in the council's own words.
+/// Closed is green here, unlike on the Browse screen: on your own report closed
+/// means the council did the thing. On somebody else's it must never read as an
+/// argument against filing.
 struct StatusView: View {
     @Environment(AppModel.self) private var model
 
@@ -10,29 +15,42 @@ struct StatusView: View {
     @State private var failure: String?
 
     var body: some View {
-        List {
-            if let failure {
-                Text(failure).font(.footnote).foregroundStyle(.red)
-            }
-            ForEach(reports) { report in
-                VStack(alignment: .leading, spacing: 4) {
-                    HStack {
-                        Text(report.numero).font(.subheadline.monospaced())
-                        Spacer()
-                        Text(report.estado)
-                            .font(.caption)
-                            .padding(.horizontal, 8)
-                            .padding(.vertical, 3)
-                            .background(.quaternary, in: .capsule)
-                    }
-                    Text(report.tipo).font(.footnote).foregroundStyle(.secondary)
-                    if let text = report.descricao, !text.isEmpty {
-                        Text(text).font(.footnote).lineLimit(3)
-                    }
+        ScrollView {
+            VStack(spacing: 12) {
+                if let failure {
+                    CautionCard(
+                        .unverified,
+                        title: "Could not load your reports",
+                        message: failure,
+                        systemImage: "wifi.exclamationmark"
+                    )
                 }
-                .padding(.vertical, 2)
+
+                if !reports.isEmpty {
+                    Text(
+                        "\(reports.count) filed from this account. Status comes from the council, "
+                            + "not from Repara."
+                    )
+                    .reparaFootnote()
+
+                    CardGroup {
+                        ForEach(Array(reports.enumerated()), id: \.element.id) { index, report in
+                            if index > 0 { RowDivider() }
+                            row(report)
+                        }
+                    }
+
+                    Text(
+                        "A closed report is not proof the problem is gone. If it is still there, "
+                            + "file it again — that is what the council's own process expects."
+                    )
+                    .reparaFootnote()
+                }
             }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 12)
         }
+        .background(Repara.canvas)
         .overlay {
             if reports.isEmpty && !isLoading && failure == nil {
                 ContentUnavailableView(
@@ -44,6 +62,38 @@ struct StatusView: View {
         }
         .refreshable { await load() }
         .task { await load() }
+    }
+
+    private func row(_ report: MyOccurrence) -> some View {
+        let isOpen = statusReadsAsOpen(report.estado)
+
+        return VStack(alignment: .leading, spacing: 5) {
+            HStack(alignment: .firstTextBaseline, spacing: 10) {
+                Text(report.numero)
+                    .font(.subheadline.monospaced())
+                    .foregroundStyle(isOpen ? .primary : .secondary)
+                Spacer(minLength: 8)
+                StatusChip(text: report.estado, tone: isOpen ? .open : .done)
+            }
+
+            if let text = report.descricao?.trimmingCharacters(in: .whitespacesAndNewlines),
+                !text.isEmpty
+            {
+                // Dropped to secondary once the council has closed it: still
+                // readable, visibly settled.
+                Text(text)
+                    .font(.callout)
+                    .foregroundStyle(isOpen ? .primary : .secondary)
+                    .lineLimit(3)
+            }
+
+            Text(report.tipo)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.horizontal, 16)
+        .padding(.vertical, 14)
     }
 
     private func load() async {

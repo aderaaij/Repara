@@ -12,7 +12,9 @@ import SwiftUI
 /// report. `TypeCatalogueView` is the same list without the picking.
 struct TypePickerView: View {
     @Binding var selection: TipoOcorrencia?
-    var onPick: () -> Void
+    /// Defaults to doing nothing: on Browse, picking a type filters results
+    /// already in hand and there is nothing to go and fetch.
+    var onPick: () -> Void = {}
 
     @Environment(\.dismiss) private var dismiss
 
@@ -60,6 +62,11 @@ private struct TypeList: View {
 
     var body: some View {
         List {
+            if query.isEmpty {
+                draftedSection
+                alsoLikelySection
+            }
+
             ForEach(areas, id: \.id) { area in
                 Section(header: areaHeader(area)) {
                     ForEach(types(in: area.id)) { type in
@@ -81,6 +88,79 @@ private struct TypeList: View {
                 ContentUnavailableView.search(text: query)
             }
         }
+    }
+
+    /// What is already chosen, pulled to the top and marked.
+    ///
+    /// Opened from Review this is the type the model drafted, and scrolling 127
+    /// rows to find out which one that was is the wrong way to answer "did it
+    /// pick the right thing?". The amber tick is the accent doing its one job —
+    /// this is the row that wants your attention.
+    @ViewBuilder private var draftedSection: some View {
+        if let selection, let chosen = selection.wrappedValue {
+            Section {
+                Button {
+                    onPick()
+                } label: {
+                    HStack(alignment: .firstTextBaseline) {
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(chosen.descricao).fontWeight(.medium)
+                            Text(englishAndArea(chosen))
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                        Spacer()
+                        Image(systemName: "checkmark")
+                            .font(.body.weight(.bold))
+                            .foregroundStyle(Repara.amber)
+                    }
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 12)
+                    .contentShape(.rect)
+                }
+                .tint(.primary)
+                // The card is drawn on the row *content*, not as
+                // `listRowBackground`: a row background spans the full row and
+                // the ink border overshot the list's own inset, leaving two
+                // black tabs sticking out past the corners.
+                .background(
+                    Repara.card, in: .rect(cornerRadius: 12, style: .continuous))
+                .overlay {
+                    RoundedRectangle(cornerRadius: 12, style: .continuous)
+                        .strokeBorder(Repara.ink, lineWidth: 1.5)
+                }
+                .listRowInsets(EdgeInsets(top: 0, leading: 16, bottom: 0, trailing: 16))
+                .listRowBackground(Color.clear)
+                .listRowSeparator(.hidden)
+            } header: {
+                Text("Chosen")
+            } footer: {
+                Text("The type decides which council department is dispatched. Several types are worded alike across departments.")
+            }
+        }
+    }
+
+    /// The bundled sibling map, offered rather than applied.
+    ///
+    /// These are the types that could be holding the same physical problem — see
+    /// `RelatedTypes.swift`. Reading them costs nothing: the map ships with the
+    /// app, and nothing here spends a request on the council's server.
+    @ViewBuilder private var alsoLikelySection: some View {
+        if let selection, let chosen = selection.wrappedValue {
+            let related = taxonomy.related(to: chosen)
+            if !related.isEmpty {
+                Section("Also likely here") {
+                    ForEach(related) { candidate in
+                        row(candidate.type)
+                    }
+                }
+            }
+        }
+    }
+
+    private func englishAndArea(_ type: TipoOcorrencia) -> String {
+        if let english = type.en { return "\(english) · \(type.area)" }
+        return type.area
     }
 
     @ViewBuilder private func row(_ type: TipoOcorrencia) -> some View {
