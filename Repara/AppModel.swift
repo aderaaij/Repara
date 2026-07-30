@@ -24,6 +24,13 @@ final class AppModel {
     /// lifetime — leaving the screen and coming back must not re-buy the answer —
     /// but it is nothing to do with the report being built below.
     let browse: NearbyBrowser
+    /// The app API's token, which the web `JSESSIONID` does not satisfy.
+    ///
+    /// Deliberately **not** part of the sign-in gate: `auth` alone decides
+    /// whether somebody is signed in, and this is acquired on first use of the
+    /// screen that needs it. Browsing is the only thing that reads it, and an
+    /// outage there may not stop somebody filing a report.
+    let appSession: AppSession
     private let drafter = Drafter()
 
     /// - Parameter session: Injected only by `ScreenshotMode`, which serves the
@@ -36,7 +43,9 @@ final class AppModel {
         self.client = client
         self.auth = Auth(client: client)
         self.submitter = Submitter(client: client)
-        self.browse = NearbyBrowser(client: client)
+        let appSession = AppSession(client: client)
+        self.appSession = appSession
+        self.browse = NearbyBrowser(client: client, session: appSession)
     }
 
     // MARK: Flow
@@ -445,6 +454,110 @@ final class AppModel {
         duplicateNote = nil
     }
 
+    // MARK: What Review has to say
+
+    /// The reports Review offers as "possibly this same problem": the
+    /// deterministic same-type list, plus anything the judge flagged, minus
+    /// anything already shown as a booked collection.
+    ///
+    /// A booked collection says something stronger than "possibly already
+    /// reported" and has its own card above; listing it twice reads as two
+    /// separate problems.
+    var surfacedDuplicates: [NearByOccurrence] {
+        let geometric = prepared?.possibleDuplicates ?? []
+        let flagged = flaggedDuplicates.filter { candidate in
+            !geometric.contains { $0.id == candidate.id }
+                && !bookedCollections.contains { $0.id == candidate.id }
+        }
+        return geometric + flagged
+    }
+
+    /// Reports the user has said are not the problem they are filing.
+    ///
+    /// Answering is the whole point of the Decide tier — an acknowledged
+    /// warning teaches nobody anything, whereas "no, mine is new" is a fact the
+    /// screen can then stop asking about. Kept as ids rather than a flag so
+    /// dragging the pin onto a *different* report asks again: the answer was
+    /// about those reports, not about this session.
+    private(set) var answeredDuplicateIDs: Set<Int> = []
+
+    /// Booked collections the user has said are a different problem from theirs.
+    private(set) var dismissedBookedIDs: Set<Int> = []
+
+    var openBookedCollections: [NearByOccurrence] {
+        bookedCollections.filter { !dismissedBookedIDs.contains($0.id) }
+    }
+
+    /// How close a booked collection has to be before "already booked **here**"
+    /// is a claim rather than a guess.
+    ///
+    /// The check that finds these has no distance test of its own — it takes
+    /// whatever `getGeoAttributes` returns nearby, which reaches about 100 m.
+    /// That is the right radius for *looking*, and much too wide for the
+    /// conclusion: a collection booked across the road and fifty metres down
+    /// the street is a different pile of rubbish, and a filled red card saying
+    /// "don't file this" over it is simply wrong.
+    ///
+    /// 25 m is roughly a building frontage either side of the pin. The scenario
+    /// this warning exists for — somebody booked a bulky-waste collection, put
+    /// the mattress out, and a passer-by is about to file fly-tipping on top of
+    /// it — happens *at the same spot*, because the mattress is on the pavement
+    /// where it will be collected. Beyond that the two are probably not the
+    /// same thing, and the screen should ask rather than tell.
+    static let bookedStopRadiusMetres = 25.0
+
+    /// True when the nearest booked collection is close enough for the Stop
+    /// tier. Further out the same finding is worth a Decide card — same facts,
+    /// a question instead of a verdict.
+    ///
+    /// A `NaN` distance reads as *not* certain: an unmeasurable separation is
+    /// not evidence that two things are the same.
+    var bookedCollectionIsAtThisSpot: Bool {
+        guard let nearest = openBookedCollections.first?.distance, nearest.isFinite else {
+            return false
+        }
+        return nearest <= Self.bookedStopRadiusMetres
+    }
+
+    var duplicatesNeedAnswer: Bool {
+        !surfacedDuplicates.isEmpty
+            && !surfacedDuplicates.allSatisfy { answeredDuplicateIDs.contains($0.id) }
+    }
+
+    /// How many questions Review is still holding open.
+    ///
+    /// Counted and stated on the submit bar, **never a gate**. Somebody
+    /// standing in the street can file while the app is still looking things
+    /// up; a check that blocks submission is a check that will one day strand
+    /// them in the rain with a dead network. Saying "2 checks outstanding" out
+    /// loud is the honest version — it neither hides the doubt nor pretends to
+    /// authority it does not have.
+    var outstandingChecks: Int {
+        var count = 0
+        if !openBookedCollections.isEmpty { count += 1 }
+        if duplicatesNeedAnswer { count += 1 }
+        if isCheckingCollections { count += 1 }
+        if collectionCheckFailed { count += 1 }
+        return count
+    }
+
+    func answerDuplicatesAsNew() {
+        answeredDuplicateIDs.formUnion(surfacedDuplicates.map(\.id))
+    }
+
+    func dismissBookedWarning() {
+        dismissedBookedIDs.formUnion(bookedCollections.map(\.id))
+    }
+
+    /// Ask again after a lookup that did not answer.
+    ///
+    /// Only complete answers are cached, so a failed check has nothing stale
+    /// behind it — this is a real second attempt, not a re-read.
+    func retryCollectionCheck() async {
+        guard let prepared else { return }
+        await checkForBookedCollections(for: prepared)
+    }
+
     // MARK: Submit — the irreversible bit
 
     /// Called only from the Review screen's confirm action.
@@ -482,6 +595,8 @@ final class AppModel {
         resolveTask?.cancel()
         clearDuplicateJudgement()
         clearCollectionCheck()
+        answeredDuplicateIDs = []
+        dismissedBookedIDs = []
         photo = nil
         photoForModel = nil
         userText = ""

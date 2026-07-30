@@ -197,10 +197,12 @@ public final class PortalClient: @unchecked Sendable {
         method: String = "GET",
         query: [String: String] = [:],
         body: RequestBody? = nil,
-        headers: [String: String] = [:]
+        headers: [String: String] = [:],
+        absolute: Bool = false
     ) async throws -> T {
         let (data, response) = try await request(
-            path, method: method, query: query, body: body, headers: headers)
+            path, method: method, query: query, body: body, headers: headers,
+            absolute: absolute)
         do {
             return try JSONDecoder().decode(T.self, from: data)
         } catch {

@@ -238,11 +238,75 @@ public struct NearByOccurrence: Decodable, Sendable, Hashable, Identifiable {
         y = try c.decodeIfPresent(Double.self, forKey: .geoY) ?? 0
     }
 
+    /// The same report as the app API described it.
+    ///
+    /// Browse reads the app API, which answers about every type at once;
+    /// duplicate detection reads `getGeoAttributes`, which answers about one.
+    /// Both are "a report near a point", and the map, the clustering, the rows
+    /// and the sheet are written against this one shape — so the second API is
+    /// converted here rather than duplicated through all of that.
+    ///
+    /// **The projection runs our way round.** The app API sends WGS84; `x`/`y`
+    /// here are EPSG:3763 because that is what clustering and distance work in.
+    /// `Projection.forward` is this app's own implementation, not the portal's
+    /// 114 m-shifted one, so converting costs no accuracy.
+    ///
+    /// Nothing identifying can cross: `AreaOccurrence` never decoded the address
+    /// in the first place, and there is no field here to put one in.
+    public init(_ found: AreaOccurrence) {
+        let point = Projection.forward(found.coordinate)
+        id = found.id
+        numero = found.numero
+        descricao = found.descricao
+        // The app API sends no free-text reference on this call.
+        referencia = nil
+        tipo = found.tipo
+        tipoId = found.tipoId
+        area = found.area
+        areaOcorrenciaId = found.areaId
+        freguesia = found.freguesia
+        estado = found.estado
+        x = point.x
+        y = point.y
+        distance = found.distance
+    }
+
     /// True when the estado reads as already dealt with, so it is not a
     /// duplicate worth warning about.
+    ///
+    /// Matches on the *wording* because the two APIs disagree on everything
+    /// else: `getGeoAttributes` sends `naminharua_estado`, the app API sends
+    /// `est`, and both spell a finished report "Resolvida".
     public var isResolved: Bool {
         estado.range(of: "resolvid", options: .caseInsensitive) != nil
     }
+
+    /// The year the report was filed, read off the end of its number.
+    ///
+    /// **The portal sends no date.** A nearby occurrence carries 34 fields in
+    /// the verified capture and not one of them is a timestamp — no
+    /// `data_criacao`, nothing. The number is `OCO/<serial>/<year>`, and across
+    /// all 89 entries of that capture the trailing year runs monotonic with the
+    /// sequential occurrence id, so the reading is corroborated rather than
+    /// assumed.
+    ///
+    /// Nil rather than a guess when the segment is not a plausible year: this is
+    /// inferred from a format, and formats change. Everything downstream of it
+    /// has to degrade to saying nothing about when — which is honest, because
+    /// without this there is nothing to say.
+    ///
+    /// It is deliberately **not** used to filter anything. The history of a spot
+    /// is the reason to look at it: a corner that produced 43 reports last year
+    /// is a corner where collection is failing, and hiding the old ones would
+    /// delete the evidence for that.
+    public var filedYear: Int? {
+        guard let tail = numero.split(separator: "/").last, let year = Int(tail),
+            Self.plausibleYears.contains(year)
+        else { return nil }
+        return year
+    }
+
+    private static let plausibleYears = 2000...2100
 
     /// The only representation of a neighbour that may be sent to a model
     /// provider — whichever one is selected. Built from this type's fields,
@@ -262,6 +326,22 @@ public struct NearByOccurrence: Decodable, Sendable, Hashable, Identifiable {
 }
 
 extension Array where Element == NearByOccurrence {
+    /// Earliest and latest filing year in the list, when the numbers carry them.
+    ///
+    /// What turns a heap into a finding: "63 closed reports" is a mess, "63
+    /// closed reports since 2021, 20 of them this year" is a street the council
+    /// is losing. Nil when nothing parsed, so the caller says neither.
+    public var filedYears: ClosedRange<Int>? {
+        let years = compactMap(\.filedYear)
+        guard let earliest = years.min(), let latest = years.max() else { return nil }
+        return earliest...latest
+    }
+
+    /// How many were filed in a given year.
+    public func filed(in year: Int) -> Int {
+        count { $0.filedYear == year }
+    }
+
     /// Attach distances and sort nearest-first.
     public func stripped(relativeTo origin: PtTm06) -> [NearByOccurrence] {
         map { $0.withDistance(from: origin) }.sorted { $0.distance < $1.distance }
