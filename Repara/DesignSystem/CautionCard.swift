@@ -60,6 +60,18 @@ struct CautionCard<Content: View>: View {
     let title: String
     let message: String
     var systemImage: String
+    /// Plain facts carried inside the card, under a hairline: what Review knows
+    /// about the report regardless of what the card is warning about.
+    ///
+    /// It exists because the loudest caution **is** the top card on Review.
+    /// A summary card above a warning card had nothing of its own to say, so it
+    /// said the warning a second time in slightly different words — and once
+    /// there were two copies they drifted, the card learning to soften past
+    /// 25 m while the summary above it went on telling.
+    ///
+    /// Only the promoted card ever sets this; a caution further down the stack
+    /// leaves it nil and is exactly what it was.
+    var footer: AnyView? = nil
     @ViewBuilder var content: () -> Content
 
     var body: some View {
@@ -75,23 +87,27 @@ struct CautionCard<Content: View>: View {
     // MARK: Filled — the only one that takes the whole surface
 
     private var filled: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Label {
-                Text(title).font(.headline)
-            } icon: {
-                Image(systemName: systemImage)
+        VStack(spacing: 0) {
+            VStack(alignment: .leading, spacing: 8) {
+                Label {
+                    Text(title).font(.headline)
+                } icon: {
+                    Image(systemName: systemImage)
+                }
+                .foregroundStyle(tier.ink)
+
+                Text(message)
+                    .font(.subheadline)
+                    .foregroundStyle(tier.ink.opacity(0.9))
+                    .fixedSize(horizontal: false, vertical: true)
+
+                content()
             }
-            .foregroundStyle(tier.ink)
+            .padding(16)
+            .frame(maxWidth: .infinity, alignment: .leading)
 
-            Text(message)
-                .font(.subheadline)
-                .foregroundStyle(tier.ink.opacity(0.9))
-                .fixedSize(horizontal: false, vertical: true)
-
-            content()
+            if let footer { footer }
         }
-        .padding(16)
-        .frame(maxWidth: .infinity, alignment: .leading)
         .background(tier.tint, in: .rect(cornerRadius: Repara.Radius.card, style: .continuous))
         .shadow(color: tier.tint.opacity(0.22), radius: 9, y: 4)
     }
@@ -105,24 +121,30 @@ struct CautionCard<Content: View>: View {
             // across — in an 18 pt rail 430 pt tall that is a 430 pt stripe,
             // which paints diagonal grey over the card's own text and makes the
             // one caution that must be readable unreadable.
+            // The rail runs the full height, footer included: the signature is
+            // a property of the card, not of the paragraph inside it.
             rail.frame(width: railWidth).clipped()
-            VStack(alignment: .leading, spacing: 8) {
-                Label {
-                    Text(title).font(.headline)
-                } icon: {
-                    Image(systemName: systemImage)
+            VStack(spacing: 0) {
+                VStack(alignment: .leading, spacing: 8) {
+                    Label {
+                        Text(title).font(.headline)
+                    } icon: {
+                        Image(systemName: systemImage)
+                    }
+                    .foregroundStyle(tier.ink)
+
+                    Text(message)
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+
+                    content()
                 }
-                .foregroundStyle(tier.ink)
+                .padding(16)
+                .frame(maxWidth: .infinity, alignment: .leading)
 
-                Text(message)
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-                    .fixedSize(horizontal: false, vertical: true)
-
-                content()
+                if let footer { footer }
             }
-            .padding(16)
-            .frame(maxWidth: .infinity, alignment: .leading)
         }
         .background(Repara.card)
         .clipShape(.rect(cornerRadius: Repara.Radius.card, style: .continuous))
@@ -160,8 +182,16 @@ struct CautionCard<Content: View>: View {
 }
 
 extension CautionCard where Content == EmptyView {
-    init(_ tier: CautionTier, title: String, message: String, systemImage: String) {
-        self.init(tier: tier, title: title, message: message, systemImage: systemImage) {
+    init(
+        _ tier: CautionTier,
+        title: String,
+        message: String,
+        systemImage: String,
+        footer: AnyView? = nil
+    ) {
+        self.init(
+            tier: tier, title: title, message: message, systemImage: systemImage, footer: footer
+        ) {
             EmptyView()
         }
     }
@@ -173,9 +203,12 @@ extension CautionCard {
         title: String,
         message: String,
         systemImage: String,
+        footer: AnyView? = nil,
         @ViewBuilder content: @escaping () -> Content
     ) {
-        self.init(tier: tier, title: title, message: message, systemImage: systemImage, content: content)
+        self.init(
+            tier: tier, title: title, message: message, systemImage: systemImage, footer: footer,
+            content: content)
     }
 }
 

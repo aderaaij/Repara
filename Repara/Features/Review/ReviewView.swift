@@ -15,12 +15,15 @@ import SwiftUI
 ///
 /// The shape of it, in reading order:
 ///
-/// 1. **A verdict card, not a first section.** Address, department, mode and a
-///    count of outstanding checks resolve above the fold. Learning the mode
-///    after six scrolls is how somebody files a real report thinking they were
-///    dry-running.
-/// 2. **The cautions**, each in the tier that names what it wants — see
-///    `CautionTier`. Ordered stop → decide → pending → unverified → heads-up.
+/// 1. **One card that is both the verdict and the loudest caution.** What
+///    stands in the way, in that caution's own tier signature, with the address
+///    and the department under a hairline inside the same card. Learning the
+///    mode after six scrolls is how somebody files a real report thinking they
+///    were dry-running — but a summary card stacked on top of a warning card
+///    had nothing of its own to say and just said the warning twice.
+/// 2. **The remaining cautions**, each in the tier that names what it wants —
+///    see `CautionTier`. Ordered stop → decide → pending → unverified →
+///    heads-up; whichever of them came first is up in the card above.
 /// 3. **The Portuguese, as the hero.** It is what a council worker reads, so it
 ///    is the largest text on the screen and it is also the scroll gate: the
 ///    submit button stays inert until this block has passed the fold.
@@ -51,7 +54,7 @@ struct ReviewView: View {
 
         ScrollView {
             VStack(spacing: 14) {
-                verdictCard
+                verdictSection
                 if let error = model.error { errorCard(error) }
                 cautions
                 descriptionBlock
@@ -78,46 +81,93 @@ struct ReviewView: View {
 
     // MARK: The verdict
 
-    /// What this screen has concluded, in one sentence, before anything else.
+    /// The one thing standing in the way, if anything is.
     ///
-    /// Written from the checks rather than from a mood: each branch names the
-    /// one thing standing in the way and where to read about it. The clean
-    /// version is assembled from two facts rather than asserted, so it cannot
-    /// claim "nothing nearby" on a screen that is showing something nearby.
-    private var verdict: (title: String, detail: String) {
-        if let booked = model.openBookedCollections.first {
-            return model.bookedCollectionIsAtThisSpot
-                ? (
-                    "A collection is already booked here",
-                    "Read the red card before you file — this may not need a report at all. It is "
-                        + "\(distancePhrase(booked.distance))."
-                )
-                : (
-                    "A collection is booked nearby",
-                    "It is \(distancePhrase(booked.distance)), which may well be a different "
-                        + "problem. Open it and compare before you decide."
-                )
+    /// Whichever caution this names is drawn **as** the verdict card and not
+    /// again in the stack below it. A separate summary card had nothing of its
+    /// own to say: every branch of it was a paraphrase of the card immediately
+    /// underneath, and once a claim exists in two places the two drift — the
+    /// booked caution learned to soften past 25 m while the summary above it
+    /// went on telling.
+    ///
+    /// The order is the stack's order, so the card that gets promoted is the
+    /// one that would have been on top anyway: stop → decide → pending →
+    /// unverified. Heads-up items never qualify — they are worth fixing, not
+    /// worth a verdict.
+    private enum Concern {
+        case booked, duplicates, pending, unverified
+    }
+
+    private var leadingConcern: Concern? {
+        if !model.openBookedCollections.isEmpty { return .booked }
+        if model.duplicatesNeedAnswer { return .duplicates }
+        if model.isCheckingCollections { return .pending }
+        if model.collectionCheckFailed { return .unverified }
+        return nil
+    }
+
+    /// The signature the top card wears. `nil` is the clear card: glass, no
+    /// tier, because nothing outside `CautionTier` may pick a warning colour
+    /// and "nothing stands in the way" is not a warning.
+    private var verdictTier: CautionTier? {
+        switch leadingConcern {
+        case .booked: model.bookedCollectionIsAtThisSpot ? .stop : .decide
+        case .duplicates: .decide
+        case .pending: .pending
+        case .unverified: .unverified
+        case nil: nil
         }
-        if model.isCheckingCollections {
-            return (
-                "1 check still running",
-                "Nothing has come back yet about a booked collection here."
-            )
+    }
+
+    private var verdictSection: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Before this is filed")
+                .font(.footnote.weight(.semibold))
+                .kerning(0.2)
+                .textCase(.uppercase)
+                .foregroundStyle(.secondary)
+                .padding(.horizontal, 4)
+            verdictCard
         }
-        if model.collectionCheckFailed {
-            return (
-                "1 check could not be completed",
-                "Repara does not know whether this is already booked. That is not the same as "
-                    + "knowing it is not."
-            )
+    }
+
+    @ViewBuilder private var verdictCard: some View {
+        let facts = AnyView(verdictFacts(onFilled: verdictTier == .stop))
+        switch leadingConcern {
+        case .booked: bookedCaution(footer: facts)
+        case .duplicates: duplicateCaution(footer: facts)
+        case .pending: pendingCaution(footer: facts)
+        case .unverified: unverifiedCaution(footer: facts)
+        case nil: clearVerdictCard
         }
-        if model.duplicatesNeedAnswer {
-            let count = model.surfacedDuplicates.count
-            return (
-                count == 1 ? "1 nearby report to rule out" : "\(count) nearby reports to rule out",
-                "Answer the amber card and the check clears."
-            )
+    }
+
+    /// Nothing to warn about, so no tier and no signature — glass, and a
+    /// sentence assembled from two facts rather than asserted, so that it
+    /// cannot claim "nothing nearby" on a screen that is showing something
+    /// nearby.
+    private var clearVerdictCard: some View {
+        VStack(spacing: 0) {
+            VStack(alignment: .leading, spacing: 4) {
+                Text(clearVerdict.title)
+                    .font(.title2.bold())
+                    .fixedSize(horizontal: false, vertical: true)
+                Text(clearVerdict.detail)
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.horizontal, 18)
+            .padding(.top, 16)
+            .padding(.bottom, 14)
+
+            verdictFacts(onFilled: false)
         }
+        .glassEffect(.regular, in: .rect(cornerRadius: Repara.Radius.hero, style: .continuous))
+    }
+
+    private var clearVerdict: (title: String, detail: String) {
         if model.prepared == nil {
             return (
                 model.isResolving ? "Working out where this is" : "Not ready to file",
@@ -139,44 +189,34 @@ struct ReviewView: View {
         )
     }
 
-    private var verdictCard: some View {
-        VStack(spacing: 0) {
-            VStack(alignment: .leading, spacing: 4) {
-                Text("Before this is filed")
-                    .font(.footnote.weight(.semibold))
-                    .kerning(0.2)
-                    .textCase(.uppercase)
-                    .foregroundStyle(.secondary)
-                Text(verdict.title)
-                    .font(.title2.bold())
-                    .fixedSize(horizontal: false, vertical: true)
-                Text(verdict.detail)
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(.horizontal, 18)
-            .padding(.top, 16)
-            .padding(.bottom, 14)
-
-            Rectangle().fill(Repara.hairline).frame(height: 0.5)
-
+    /// Where this is going and which department gets it — inside whichever card
+    /// is on top, because both facts have to be above the fold and neither of
+    /// them was ever worth a card of its own.
+    private func verdictFacts(onFilled: Bool) -> some View {
+        let divider = onFilled ? Color.white.opacity(0.28) : Repara.hairline
+        return VStack(spacing: 0) {
+            Rectangle().fill(divider).frame(height: 0.5)
             HStack(spacing: 0) {
-                verdictFact("Address", model.prepared?.location.address ?? "—")
-                Rectangle().fill(Repara.hairline).frame(width: 0.5)
-                verdictFact("Department", model.type?.area ?? "—")
+                verdictFact("Address", model.prepared?.location.address ?? "—", onFilled: onFilled)
+                Rectangle().fill(divider).frame(width: 0.5)
+                verdictFact("Department", model.type?.area ?? "—", onFilled: onFilled)
             }
             .fixedSize(horizontal: false, vertical: true)
         }
-        .glassEffect(.regular, in: .rect(cornerRadius: Repara.Radius.hero, style: .continuous))
     }
 
-    private func verdictFact(_ label: String, _ value: String) -> some View {
+    private func verdictFact(_ label: String, _ value: String, onFilled: Bool) -> some View {
         VStack(alignment: .leading, spacing: 2) {
-            Text(label).font(.caption2).foregroundStyle(.secondary)
+            Text(label)
+                .font(.caption2)
+                .foregroundStyle(
+                    onFilled
+                        ? AnyShapeStyle(Color.white.opacity(0.8))
+                        : AnyShapeStyle(HierarchicalShapeStyle.secondary))
             Text(value)
                 .font(.subheadline.weight(.medium))
+                .foregroundStyle(
+                    onFilled ? AnyShapeStyle(Repara.onStop) : AnyShapeStyle(Color.primary))
                 .fixedSize(horizontal: false, vertical: true)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -195,11 +235,14 @@ struct ReviewView: View {
 
     // MARK: The cautions
 
+    /// Everything the verdict card did not already say. The promoted one is
+    /// skipped here rather than dimmed or shortened: it is on the screen, at
+    /// full strength, at the top.
     @ViewBuilder private var cautions: some View {
-        bookedCaution
-        duplicateCaution
-        if model.isCheckingCollections { pendingCaution }
-        if model.collectionCheckFailed { unverifiedCaution }
+        if leadingConcern != .booked { bookedCaution() }
+        if leadingConcern != .duplicates { duplicateCaution() }
+        if model.isCheckingCollections, leadingConcern != .pending { pendingCaution() }
+        if model.collectionCheckFailed, leadingConcern != .unverified { unverifiedCaution() }
         streetCaution
         photoCaution
         signedOutCaution
@@ -215,7 +258,7 @@ struct ReviewView: View {
     /// No model is involved in the claim: the type ids are known to be
     /// collection requests from the bundled map, so it says what it says on the
     /// strength of the taxonomy alone.
-    @ViewBuilder private var bookedCaution: some View {
+    @ViewBuilder private func bookedCaution(footer: AnyView? = nil) -> some View {
         let booked = model.openBookedCollections
         if let nearest = booked.first {
             let onTheSpot = model.bookedCollectionIsAtThisSpot
@@ -231,7 +274,8 @@ struct ReviewView: View {
                         + "second worker to a job that is already on the list."
                     : "A collection request is scheduled \(place) and not yet done. That is far "
                         + "enough to be a different pile — open it and see before you decide.",
-                systemImage: onTheSpot ? "exclamationmark.octagon.fill" : "exclamationmark.triangle"
+                systemImage: onTheSpot ? "exclamationmark.octagon.fill" : "exclamationmark.triangle",
+                footer: footer
             ) {
                 VStack(spacing: 8) {
                     ForEach(booked) { report in
@@ -272,14 +316,15 @@ struct ReviewView: View {
     /// It ends in two answers rather than an acknowledgement. "No — mine is new"
     /// is a fact the screen can then stop asking about; a warning you can only
     /// nod at teaches nobody anything and gets skimmed past by the third report.
-    @ViewBuilder private var duplicateCaution: some View {
+    @ViewBuilder private func duplicateCaution(footer: AnyView? = nil) -> some View {
         let duplicates = model.surfacedDuplicates
         if !duplicates.isEmpty {
             CautionCard(
                 .decide,
                 title: "Is this the same problem?",
                 message: duplicateMessage(duplicates),
-                systemImage: "exclamationmark.triangle"
+                systemImage: "exclamationmark.triangle",
+                footer: footer
             ) {
                 VStack(spacing: 8) {
                     ForEach(duplicates) { report in
@@ -343,14 +388,15 @@ struct ReviewView: View {
     /// Named rather than silent: this appears a second after the rest of the
     /// screen, and an unexplained warning that pops in later reads as the app
     /// having changed its mind.
-    private var pendingCaution: some View {
+    private func pendingCaution(footer: AnyView? = nil) -> some View {
         CautionCard(
             .pending,
             title: "Still checking",
             message:
                 "Asking whether a collection is already booked here. No answer yet — that is not "
                 + "an all-clear.",
-            systemImage: "clock"
+            systemImage: "clock",
+            footer: footer
         ) {
             HStack(spacing: 8) {
                 ProgressView().controlSize(.small)
@@ -366,14 +412,15 @@ struct ReviewView: View {
     /// and the honest version of the second is to say so — in the loudest
     /// non-red signature in the set, with no tick and nothing green anywhere
     /// near it.
-    private var unverifiedCaution: some View {
+    private func unverifiedCaution(footer: AnyView? = nil) -> some View {
         CautionCard(
             .unverified,
             title: "Not checked — not cleared",
             message:
                 "The council's server did not answer, so Repara does not know whether a collection "
                 + "is already booked here. It may be. This is not the same as nothing being here.",
-            systemImage: "wifi.exclamationmark"
+            systemImage: "wifi.exclamationmark",
+            footer: footer
         ) {
             HStack(spacing: 8) {
                 Button {
