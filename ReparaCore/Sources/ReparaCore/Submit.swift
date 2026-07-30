@@ -31,6 +31,42 @@ public enum SubmitError: Error, CustomStringConvertible {
     case confirmationDoesNotMatch
     case unexpectedResult(String)
 
+    /// What to show the user. Every case here is actionable, so unlike
+    /// `PortalError` none of them falls through to `description`.
+    public func message(in locale: Locale) -> String {
+        switch self {
+        case .emptyDescription:
+            return String(
+                localized: "submit.empty-description",
+                defaultValue: "Describe what is wrong, so the council can act on it.",
+                bundle: .module.strings(for: locale), locale: locale)
+        case let .descriptionTooLong(count, max):
+            return String(
+                localized: "submit.description-too-long",
+                defaultValue: """
+                    The description is \(count) characters; the portal accepts \(max). Trim it by \
+                    \(count - max) — the portal would otherwise truncate it without saying so.
+                    """,
+                bundle: .module.strings(for: locale), locale: locale)
+        case .confirmationDoesNotMatch:
+            return String(
+                localized: "submit.confirmation-does-not-match",
+                defaultValue: """
+                    This report changed after it was reviewed. Check it again before filing — the \
+                    confirmation applies to the exact report that was on screen.
+                    """,
+                bundle: .module.strings(for: locale), locale: locale)
+        case let .unexpectedResult(body):
+            return String(
+                localized: "submit.unexpected-result",
+                defaultValue: """
+                    The portal returned something unexpected: \(body.prefix(200)). The report may \
+                    or may not have been filed — check My reports before trying again.
+                    """,
+                bundle: .module.strings(for: locale), locale: locale)
+        }
+    }
+
     public var description: String {
         switch self {
         case .emptyDescription:

@@ -36,6 +36,7 @@ struct OccurrenceSheet: View {
 
     @Environment(AppModel.self) private var model
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.locale) private var locale
 
     @State private var photos = PhotoLoad.idle
 
@@ -106,12 +107,17 @@ struct OccurrenceSheet: View {
                     .fixedSize(horizontal: false, vertical: true)
             }
 
-            Text(
-                isOpen
-                    ? "Still open with the council."
-                    : "The council has marked this one done — which is a reason to file if the "
-                        + "problem is back, not a reason to stay quiet."
-            )
+            Group {
+                if isOpen {
+                    Text("Still open with the council.")
+                } else {
+                    Text(
+                        """
+                        The council has marked this one done — which is a reason to file if the \
+                        problem is back, not a reason to stay quiet.
+                        """)
+                }
+            }
             .font(.subheadline)
             .foregroundStyle(.secondary)
             .fixedSize(horizontal: false, vertical: true)
@@ -144,11 +150,18 @@ struct OccurrenceSheet: View {
         let rounded = Int(metres.rounded())
         switch metres {
         case ..<15:
-            return "\(rounded) m from your pin — close enough to be the same thing."
+            return String(
+                localized: "\(rounded) m from your pin — close enough to be the same thing.",
+                bundle: locale.bundle, locale: locale)
         case ..<60:
-            return "\(rounded) m from your pin — could be the same thing, or the next doorway."
+            return String(
+                localized:
+                    "\(rounded) m from your pin — could be the same thing, or the next doorway.",
+                bundle: locale.bundle, locale: locale)
         default:
-            return "\(rounded) m from your pin — probably a different spot."
+            return String(
+                localized: "\(rounded) m from your pin — probably a different spot.",
+                bundle: locale.bundle, locale: locale)
         }
     }
 
@@ -242,7 +255,8 @@ struct OccurrenceSheet: View {
 
     private static func describe(_ error: any Error) -> String {
         switch error {
-        case let error as PortalError: return error.description
+        case let error as PortalError:
+            return error.message(in: AppLanguage.selected.locale)
         default: return error.localizedDescription
         }
     }
@@ -282,7 +296,7 @@ struct OccurrenceSheet: View {
                 // would repeat it from a different origin — two numbers for one
                 // fact, which is how a screen starts to look untrustworthy.
                 if comparedTo == nil {
-                    fact("Distance", distancePhrase(report.distance))
+                    fact("Distance", distancePhrase(report.distance, in: locale))
                 }
                 if !report.freguesia.isEmpty {
                     if comparedTo == nil { RowDivider() }
@@ -307,7 +321,10 @@ struct OccurrenceSheet: View {
         return text.isEmpty ? nil : text
     }
 
-    private func fact(_ name: String, _ value: String) -> some View {
+    /// The name is always copy and the value is always something the portal
+    /// said, so the two take different types and cannot be confused for one
+    /// another: `LocalizedStringKey` translates, `String` is printed as it came.
+    private func fact(_ name: LocalizedStringKey, _ value: String) -> some View {
         HStack(alignment: .firstTextBaseline, spacing: 12) {
             Text(name)
                 .font(.subheadline)
@@ -333,8 +350,15 @@ struct OccurrenceSheet: View {
     /// way to tell which one is being warned about.
     private var map: some View {
         Map(initialPosition: .region(region), interactionModes: []) {
+            // A `String`, so this takes `Marker`'s verbatim overload. The empty
+            // branch means "no label" — there is only one pin, so there is
+            // nothing to tell apart — and as a `LocalizedStringKey` it became an
+            // empty key in the catalogue for a translator to puzzle over.
+            let theirs =
+                comparedTo == nil
+                ? "" : String(localized: "Theirs", bundle: locale.bundle, locale: locale)
             Marker(
-                comparedTo == nil ? "" : "Theirs",
+                theirs,
                 systemImage: isOpen ? "exclamationmark" : "checkmark",
                 coordinate: coordinate
             )
@@ -382,14 +406,18 @@ struct OccurrenceSheet: View {
     private var footnotes: some View {
         VStack(alignment: .leading, spacing: 8) {
             Text(
-                "The list this came from carries no photographs; those are a second request, "
-                    + "made only when a report is opened."
+                """
+                The list this came from carries no photographs; those are a second request, \
+                made only when a report is opened.
+                """
             )
             .reparaFootnote()
 
             Text(
-                "The reporter's name, email and street address arrive with it and are never "
-                    + "decoded, so Repara cannot show them."
+                """
+                The reporter's name, email and street address arrive with it and are never \
+                decoded, so Repara cannot show them.
+                """
             )
             .reparaFootnote()
         }

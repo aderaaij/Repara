@@ -57,6 +57,7 @@ private struct TypeList: View {
     var onPick: () -> Void = {}
 
     @State private var query = ""
+    @Environment(\.locale) private var locale
 
     private let taxonomy = Taxonomy.bundled
 
@@ -104,8 +105,8 @@ private struct TypeList: View {
                 } label: {
                     HStack(alignment: .firstTextBaseline) {
                         VStack(alignment: .leading, spacing: 2) {
-                            Text(chosen.descricao).fontWeight(.medium)
-                            Text(englishAndArea(chosen))
+                            Text(chosen.localizedDescricao(in: locale)).fontWeight(.medium)
+                            Text(alternateAndArea(chosen))
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
                         }
@@ -158,9 +159,14 @@ private struct TypeList: View {
         }
     }
 
-    private func englishAndArea(_ type: TipoOcorrencia) -> String {
-        if let english = type.en { return "\(english) · \(type.area)" }
-        return type.area
+    /// The second line under a chosen type: the council's own wording when the
+    /// app is showing a translation, and the area either way. The area is not
+    /// decoration — five descriptions are worded identically across two areas
+    /// and route to different desks.
+    private func alternateAndArea(_ type: TipoOcorrencia) -> String {
+        let area = type.localizedArea(in: locale)
+        if let alternate = type.alternateDescricao(in: locale) { return "\(alternate) · \(area)" }
+        return area
     }
 
     @ViewBuilder private func row(_ type: TipoOcorrencia) -> some View {
@@ -180,9 +186,9 @@ private struct TypeList: View {
     private func label(_ type: TipoOcorrencia, ticked: Bool) -> some View {
         HStack(alignment: .firstTextBaseline) {
             VStack(alignment: .leading, spacing: 2) {
-                Text(type.descricao)
-                if let english = type.en {
-                    Text(english)
+                Text(type.localizedDescricao(in: locale))
+                if let alternate = type.alternateDescricao(in: locale) {
+                    Text(alternate)
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
@@ -196,10 +202,14 @@ private struct TypeList: View {
     }
 
     @ViewBuilder private func areaHeader(_ area: AreaOcorrencia) -> some View {
+        // Resolved through a type in the area rather than `AreaOcorrencia`,
+        // which carries no translation of its own — the areas are derived from
+        // the types, and the gloss rides along on them.
+        let first = taxonomy.types(inArea: area.id).first
         VStack(alignment: .leading, spacing: 1) {
-            Text(area.descricao)
-            if let english = taxonomy.types(inArea: area.id).first?.areaEn {
-                Text(english).font(.caption2).textCase(nil).foregroundStyle(.tertiary)
+            Text(first?.localizedArea(in: locale) ?? area.descricao)
+            if let alternate = first?.alternateArea(in: locale) {
+                Text(alternate).font(.caption2).textCase(nil).foregroundStyle(.tertiary)
             }
         }
     }

@@ -194,7 +194,8 @@ final class AppModel {
             let draft = try await drafter.draft(
                 photo: photoForModel,
                 userText: userText,
-                address: nil
+                address: nil,
+                readerLocale: AppLanguage.selected.locale
             )
             type = draft.type
             descricao = draft.descricao
@@ -427,7 +428,8 @@ final class AppModel {
                     descricao: self.descricao,
                     type: report.type,
                     address: report.location.address,
-                    nearBy: nearBy
+                    nearBy: nearBy,
+                    readerLocale: AppLanguage.selected.locale
                 )
                 guard !Task.isCancelled else { return }
                 self.flaggedDuplicates = verdict.matches.compactMap { position in
@@ -613,14 +615,21 @@ final class AppModel {
 
     // MARK: Errors
 
+    /// The message a person reads, in the language the app is in.
+    ///
+    /// Each type decides for itself which of its cases are worth translating and
+    /// which are diagnostics — see `PortalError.message(in:)`. `TaxonomyError`
+    /// has no `message(in:)` because it cannot reach a screen: nothing in the
+    /// app calls `Taxonomy.resolve`, which is the only thing that throws it.
     private func describe(_ error: any Error) -> String {
+        let locale = AppLanguage.selected.locale
         switch error {
-        case let error as PortalError: return error.description
-        case let error as SubmitError: return error.description
+        case let error as PortalError: return error.message(in: locale)
+        case let error as SubmitError: return error.message(in: locale)
         case let error as TaxonomyError: return error.description
-        case let error as ProjectionError: return error.description
-        case let error as ModelError: return error.description
-        case let error as Drafter.DrafterError: return error.description
+        case let error as ProjectionError: return error.message(in: locale)
+        case let error as ModelError: return error.message(in: locale)
+        case let error as Drafter.DrafterError: return error.message(in: locale)
         default: return error.localizedDescription
         }
     }

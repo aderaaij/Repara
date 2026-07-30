@@ -10,11 +10,13 @@ struct SettingsView: View {
     @State private var savedKey = ModelSettings.hasAPIKey
     @State private var draftModel = ""
     @State private var judgeModel = ""
+    @AppStorage(AppLanguage.storageKey) private var language = AppLanguage.system.rawValue
 
     var body: some View {
         NavigationStack {
             Form {
                 portalSection
+                languageSection
                 providerSection
                 modelSection
                 submitModeSection
@@ -56,6 +58,40 @@ struct SettingsView: View {
             Text("Na Minha Rua LX")
         } footer: {
             Text("Reports are filed under this account, so the council knows who reported the problem and can reach you about it. Credentials are stored in the Keychain. Signing out discards the report in progress and returns to the welcome screen.")
+        }
+    }
+
+    // MARK: Language
+
+    /// Bound straight to the same key `LocalizedRoot` reads, so the app redraws
+    /// in the new language as the picker closes — there is nothing to apply and
+    /// no relaunch to sit through.
+    ///
+    /// The footer is the load-bearing part. Everything else in Settings changes
+    /// what the user sees; this one is next to a report that goes to a council
+    /// worker, and the answer to "does this translate my report" is no.
+    @ViewBuilder private var languageSection: some View {
+        Section {
+            Picker("Language", selection: $language) {
+                ForEach(AppLanguage.allCases) { candidate in
+                    candidate.pickerLabel.tag(candidate.rawValue)
+                }
+            }
+            // The app's own text follows `\.locale` and has already changed by
+            // the time this runs. This is for the permission alerts, which iOS
+            // draws from the bundle language — see `syncBundleLanguage`.
+            .onChange(of: language) { _, selected in
+                (AppLanguage(rawValue: selected) ?? .system).syncBundleLanguage()
+            }
+        } header: {
+            Text("Language")
+        } footer: {
+            Text("""
+                Changes the app. It does not change the report: what you file is written in \
+                European Portuguese whichever language this is set to, because a council worker \
+                reads it and acts on it. You see that text, and can edit every word of it, on the \
+                review screen before anything is sent.
+                """)
         }
     }
 

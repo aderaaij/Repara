@@ -36,6 +36,7 @@ import SwiftUI
 /// network.
 struct ReviewView: View {
     @Environment(AppModel.self) private var model
+    @Environment(\.locale) private var locale
     @State private var showingTypePicker = false
     @State private var showingConfirmation = false
     @State private var whereExpanded = false
@@ -149,10 +150,10 @@ struct ReviewView: View {
     private var clearVerdictCard: some View {
         VStack(spacing: 0) {
             VStack(alignment: .leading, spacing: 4) {
-                Text(clearVerdict.title)
+                clearVerdict.title
                     .font(.title2.bold())
                     .fixedSize(horizontal: false, vertical: true)
-                Text(clearVerdict.detail)
+                clearVerdict.detail
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
@@ -167,26 +168,29 @@ struct ReviewView: View {
         .glassEffect(.regular, in: .rect(cornerRadius: Repara.Radius.hero, style: .continuous))
     }
 
-    private var clearVerdict: (title: String, detail: String) {
+    private var clearVerdict: (title: Text, detail: Text) {
         if model.prepared == nil {
             return (
-                model.isResolving ? "Working out where this is" : "Not ready to file",
                 model.isResolving
-                    ? "Asking the council's server which address the pin lands on."
-                    : "Pick a report type and place the pin before this can be prepared."
+                    ? Text("Working out where this is")
+                    : Text("Not ready to file"),
+                model.isResolving
+                    ? Text("Asking the council's server which address the pin lands on.")
+                    : Text("Pick a report type and place the pin before this can be prepared.")
             )
         }
-        let street = model.prepared?.location.isStreetMatch == true
-        return (
-            "Nothing stands in the way",
-            (street
-                ? "The pin matched a street rather than a building."
-                : "The address resolved to a building.")
-                + " "
-                + (model.surfacedDuplicates.isEmpty
-                    ? "No open report of this type is nearby."
-                    : "You have ruled out the nearby reports.")
-        )
+        // Two independent facts, each a whole sentence, set down one after the
+        // other. Splicing them into a single clause would need a conjunction
+        // that differs by language *and* by which pair came out.
+        let matched =
+            model.prepared?.location.isStreetMatch == true
+            ? Text("The pin matched a street rather than a building.")
+            : Text("The address resolved to a building.")
+        let duplicates =
+            model.surfacedDuplicates.isEmpty
+            ? Text("No open report of this type is nearby.")
+            : Text("You have ruled out the nearby reports.")
+        return (Text("Nothing stands in the way"), matched + Text(verbatim: " ") + duplicates)
     }
 
     /// Where this is going and which department gets it — inside whichever card
@@ -199,13 +203,19 @@ struct ReviewView: View {
             HStack(spacing: 0) {
                 verdictFact("Address", model.prepared?.location.address ?? "—", onFilled: onFilled)
                 Rectangle().fill(divider).frame(width: 0.5)
-                verdictFact("Department", model.type?.area ?? "—", onFilled: onFilled)
+                verdictFact(
+                    "Department", model.type?.localizedArea(in: locale) ?? "—",
+                    onFilled: onFilled)
             }
             .fixedSize(horizontal: false, vertical: true)
         }
     }
 
-    private func verdictFact(_ label: String, _ value: String, onFilled: Bool) -> some View {
+    /// The label is copy and the value is whatever the portal resolved, so the
+    /// two take different types — see `OccurrenceSheet.fact`.
+    private func verdictFact(_ label: LocalizedStringKey, _ value: String, onFilled: Bool)
+        -> some View
+    {
         VStack(alignment: .leading, spacing: 2) {
             Text(label)
                 .font(.caption2)
@@ -227,8 +237,9 @@ struct ReviewView: View {
     private func errorCard(_ error: String) -> some View {
         CautionCard(
             .unverified,
-            title: "Something did not work",
-            message: error,
+            title: Text("Something did not work"),
+            // Verbatim — the message is whatever failed, not copy.
+            message: Text(error),
             systemImage: "exclamationmark.triangle"
         )
     }
@@ -263,17 +274,30 @@ struct ReviewView: View {
         if let nearest = booked.first {
             let onTheSpot = model.bookedCollectionIsAtThisSpot
             let tier: CautionTier = onTheSpot ? .stop : .decide
-            let place = metres(nearest.distance).map { "\($0) from your pin" } ?? "near your pin"
+            // A self-contained phrase rather than a bare number spliced mid-clause:
+            // "8 m from your pin" and "near your pin" each survive being moved
+            // to wherever the sentence wants them in another language.
+            let place =
+                metres(nearest.distance).map {
+                    String(localized: "\($0) from your pin", bundle: locale.bundle, locale: locale)
+                }
+                ?? String(localized: "near your pin", bundle: locale.bundle, locale: locale)
             CautionCard(
                 tier,
                 title: onTheSpot
-                    ? "Already booked — don't file this"
-                    : "This may already be booked",
+                    ? Text("Already booked — don't file this")
+                    : Text("This may already be booked"),
                 message: onTheSpot
-                    ? "A collection request \(place) is scheduled and not yet done. Filing sends a "
-                        + "second worker to a job that is already on the list."
-                    : "A collection request is scheduled \(place) and not yet done. That is far "
-                        + "enough to be a different pile — open it and see before you decide.",
+                    ? Text(
+                        """
+                        A collection request \(place) is scheduled and not yet done. Filing sends \
+                        a second worker to a job that is already on the list.
+                        """)
+                    : Text(
+                        """
+                        A collection request is scheduled \(place) and not yet done. That is far \
+                        enough to be a different pile — open it and see before you decide.
+                        """),
                 systemImage: onTheSpot ? "exclamationmark.octagon.fill" : "exclamationmark.triangle",
                 footer: footer
             ) {
@@ -283,7 +307,7 @@ struct ReviewView: View {
                             tipo: report.tipo,
                             text: report.descricao,
                             footnote:
-                                "\(distancePhrase(report.distance)) · \(report.estado)",
+                                "\(distancePhrase(report.distance, in: locale)) · \(report.estado)",
                             onFilledSurface: onTheSpot,
                             onOpen: { inspected = report }
                         )
@@ -294,8 +318,8 @@ struct ReviewView: View {
                 // Opening the report is what makes that chip an informed
                 // choice rather than a guess against a red card.
                 HStack(spacing: 8) {
-                    AnswerChip.agreeing("Don't file it", tier) { model.startOver() }
-                    AnswerChip.dissenting("Different problem", tier) {
+                    AnswerChip.agreeing(Text("Don't file it"), tier) { model.startOver() }
+                    AnswerChip.dissenting(Text("Different problem"), tier) {
                         model.dismissBookedWarning()
                     }
                 }
@@ -321,7 +345,7 @@ struct ReviewView: View {
         if !duplicates.isEmpty {
             CautionCard(
                 .decide,
-                title: "Is this the same problem?",
+                title: Text("Is this the same problem?"),
                 message: duplicateMessage(duplicates),
                 systemImage: "exclamationmark.triangle",
                 footer: footer
@@ -345,44 +369,53 @@ struct ReviewView: View {
 
                 if model.duplicatesNeedAnswer {
                     HStack(spacing: 8) {
-                        AnswerChip.agreeing("Yes — it's this", .decide) { model.startOver() }
-                        AnswerChip.dissenting("No — mine is new", .decide) {
+                        AnswerChip.agreeing(Text("Yes — it's this"), .decide) { model.startOver() }
+                        AnswerChip.dissenting(Text("No — mine is new"), .decide) {
                             model.answerDuplicatesAsNew()
                         }
                     }
                     .padding(.top, 2)
                 } else {
-                    AnsweredNote(text: "Checked — you said yours is a new problem")
+                    AnsweredNote(text: Text("Checked — you said yours is a new problem"))
                         .padding(.top, 2)
                 }
             }
         }
     }
 
-    private func duplicateMessage(_ duplicates: [NearByOccurrence]) -> String {
+    /// Three whole sentences, joined. Each is translatable on its own; none of
+    /// them is a clause that has to land in a particular position in the next.
+    private func duplicateMessage(_ duplicates: [NearByOccurrence]) -> Text {
         let sameType = model.prepared?.possibleDuplicates.count ?? 0
         // `min(by:)` over a list that may carry `.nan` distances: NaN comparisons
         // are always false, so this settles on *some* element rather than
         // trapping, and `distancePhrase` says "nearby" if that one is unfilled.
         let nearest = duplicates.min { $0.distance < $1.distance }
-        let distance = nearest.map { distancePhrase($0.distance) } ?? "nearby"
+        let distance =
+            nearest.map { distancePhrase($0.distance, in: locale) }
+            ?? String(localized: "nearby", bundle: locale.bundle, locale: locale)
         let opening =
             duplicates.count == 1
-            ? "One open report sits \(distance)."
-            : "\(duplicates.count) open reports are nearby, the closest \(distance)."
+            ? Text("One open report sits \(distance).")
+            : Text("\(duplicates.count) open reports are nearby, the closest \(distance).")
         let source =
             sameType == duplicates.count
-            ? "Same type, within \(Int(Submitter.duplicateRadiusMetres)) m."
-            : "\(model.providerName) read the descriptions of these and of anything open under a "
-                + "related type, because the same problem often gets filed under a different one."
-        return "\(opening) \(source) A duplicate wastes a worker's trip — answer this and the "
-            + "check clears."
+            ? Text("Same type, within \(Int(Submitter.duplicateRadiusMetres)) m.")
+            : Text(
+                """
+                \(model.providerName) read the descriptions of these and of anything open under a \
+                related type, because the same problem often gets filed under a different one.
+                """)
+        let tail = Text("A duplicate wastes a worker's trip — answer this and the check clears.")
+        return opening + Text(verbatim: " ") + source + Text(verbatim: " ") + tail
     }
 
     private func duplicateFootnote(_ report: NearByOccurrence) -> String {
         let sameType = model.prepared?.possibleDuplicates.contains { $0.id == report.id } == true
-        return "\(distancePhrase(report.distance)) · \(report.estado) · "
-            + (sameType ? "same type" : report.tipo)
+        let kind =
+            sameType
+            ? String(localized: "same type", bundle: locale.bundle, locale: locale) : report.tipo
+        return "\(distancePhrase(report.distance, in: locale)) · \(report.estado) · \(kind)"
     }
 
     /// Named rather than silent: this appears a second after the rest of the
@@ -391,10 +424,12 @@ struct ReviewView: View {
     private func pendingCaution(footer: AnyView? = nil) -> some View {
         CautionCard(
             .pending,
-            title: "Still checking",
-            message:
-                "Asking whether a collection is already booked here. No answer yet — that is not "
-                + "an all-clear.",
+            title: Text("Still checking"),
+            message: Text(
+                """
+                Asking whether a collection is already booked here. No answer yet — that is not \
+                an all-clear.
+                """),
             systemImage: "clock",
             footer: footer
         ) {
@@ -415,10 +450,12 @@ struct ReviewView: View {
     private func unverifiedCaution(footer: AnyView? = nil) -> some View {
         CautionCard(
             .unverified,
-            title: "Not checked — not cleared",
-            message:
-                "The council's server did not answer, so Repara does not know whether a collection "
-                + "is already booked here. It may be. This is not the same as nothing being here.",
+            title: Text("Not checked — not cleared"),
+            message: Text(
+                """
+                The council's server did not answer, so Repara does not know whether a collection \
+                is already booked here. It may be. This is not the same as nothing being here.
+                """),
             systemImage: "wifi.exclamationmark",
             footer: footer
         ) {
@@ -454,10 +491,12 @@ struct ReviewView: View {
         if model.prepared?.location.isStreetMatch == true {
             CautionCard(
                 .headsUp,
-                title: "The pin matched a street, not a building",
-                message:
-                    "The report will carry no house number. Drag the pin onto the frontage and the "
-                    + "address resolves to a door — that is what a council worker navigates by.",
+                title: Text("The pin matched a street, not a building"),
+                message: Text(
+                    """
+                    The report will carry no house number. Drag the pin onto the frontage and the \
+                    address resolves to a door — that is what a council worker navigates by.
+                    """),
                 systemImage: "mappin.and.ellipse"
             ) {
                 Button("Open the map") {
@@ -474,8 +513,8 @@ struct ReviewView: View {
         if model.prepared?.photos.isEmpty == true {
             CautionCard(
                 .headsUp,
-                title: "No photo attached",
-                message: "A photo is the evidence a council worker acts on.",
+                title: Text("No photo attached"),
+                message: Text("A photo is the evidence a council worker acts on."),
                 systemImage: "camera"
             )
         }
@@ -485,9 +524,12 @@ struct ReviewView: View {
         if model.account == nil {
             CautionCard(
                 .headsUp,
-                title: "Not signed in to Na Minha Rua LX",
-                message: "A dry run works without a session. Filing does not — sign in from "
-                    + "Settings first.",
+                title: Text("Not signed in to Na Minha Rua LX"),
+                message: Text(
+                    """
+                    A dry run works without a session. Filing does not — sign in from Settings \
+                    first.
+                    """),
                 systemImage: "person.crop.circle.badge.exclamationmark"
             )
         }
@@ -575,7 +617,8 @@ struct ReviewView: View {
         return CardGroup {
             DisclosureRow(
                 systemImage: "mappin.and.ellipse",
-                title: model.prepared?.location.address ?? "Placing the pin…",
+                title: model.prepared.map { Text($0.location.address) }
+                    ?? Text("Placing the pin…"),
                 subtitle: whereSubtitle,
                 isExpanded: $whereExpanded
             ) {
@@ -611,7 +654,11 @@ struct ReviewView: View {
 
             PushRow(
                 systemImage: "tag",
-                title: model.type?.descricao ?? "Choose a report type",
+                // The council's own Portuguese, in either language. This is the
+                // screen that says *this is what is being sent*, and the type is
+                // what routes the report to a department — the English gloss
+                // goes in the subtitle rather than taking the headline.
+                title: model.type.map { Text($0.descricao) } ?? Text("Choose a report type"),
                 subtitle: typeSubtitle
             ) {
                 showingTypePicker = true
@@ -621,8 +668,9 @@ struct ReviewView: View {
                 RowDivider()
                 DisclosureRow(
                     systemImage: "photo",
-                    title: "1 photo attached",
-                    subtitle: "Full resolution · \(data.count.formatted(.byteCount(style: .file)))",
+                    title: Text("1 photo attached"),
+                    subtitle: Text(
+                        "Full resolution · \(data.count.formatted(.byteCount(style: .file)))"),
                     isExpanded: $photoExpanded
                 ) {
                     Image(uiImage: image)
@@ -636,24 +684,41 @@ struct ReviewView: View {
         }
     }
 
-    private var whereSubtitle: String {
+    private var whereSubtitle: Text {
         guard let location = model.prepared?.location else {
-            return model.isResolving ? "Looking up the address…" : "Not resolved yet"
+            return model.isResolving
+                ? Text("Looking up the address…")
+                : Text("Not resolved yet")
         }
-        return
-            "\(location.freguesia) · pin on the \(location.isStreetMatch ? "street" : "building")"
+        // Two whole strings rather than one word swapped inside a shared one:
+        // "on the street" and "on the building" are not a one-word difference
+        // in every language.
+        return location.isStreetMatch
+            ? Text("\(location.freguesia) · pin on the street")
+            : Text("\(location.freguesia) · pin on the building")
     }
 
     /// The area, and the model's own doubt when it had any.
     ///
     /// *Why* the type matters is said once, in the picker this row opens, rather
     /// than in a subtitle that wraps to two lines on every report.
-    private var typeSubtitle: String {
-        guard let type = model.type else { return "Decides which department is dispatched" }
-        if let confidence = model.draftConfidence, confidence != .high {
-            return "\(type.area) · drafted, \(confidence.rawValue) confidence"
+    private var typeSubtitle: Text {
+        guard let type = model.type else {
+            return Text("Decides which department is dispatched")
         }
-        return type.area
+        // Where the English goes on this screen, since the title is the
+        // council's own wording. The area is not decoration: five descriptions
+        // are worded identically across two areas and route to different desks.
+        let area = type.localizedArea(in: locale)
+        let named = type.englishGloss(in: locale).map { "\($0) · \(area)" } ?? area
+        // Spelled out rather than interpolating `confidence.rawValue`, which is
+        // an English enum case and would have printed "medium" in a Portuguese
+        // app.
+        switch model.draftConfidence {
+        case .medium: return Text("\(named) · drafted, medium confidence")
+        case .low: return Text("\(named) · drafted, low confidence")
+        default: return Text(named)
+        }
     }
 
     private var startOver: some View {
@@ -728,13 +793,20 @@ struct ReviewView: View {
     }
 
     private var submitLabel: String {
-        model.submitMode == .live ? "File this report" : "Build the payload"
+        model.submitMode == .live
+            ? String(localized: "File this report", bundle: locale.bundle, locale: locale)
+            : String(localized: "Build the payload", bundle: locale.bundle, locale: locale)
     }
 
     private var checksLine: String {
         let count = model.outstandingChecks
-        if count == 0 { return "All checks answered" }
-        return count == 1 ? "1 check outstanding" : "\(count) checks outstanding"
+        if count == 0 {
+            return String(localized: "All checks answered", bundle: locale.bundle, locale: locale)
+        }
+        return count == 1
+            ? String(localized: "1 check outstanding", bundle: locale.bundle, locale: locale)
+            : String(
+                localized: "\(count) checks outstanding", bundle: locale.bundle, locale: locale)
     }
 
     /// Everything that has to be true before the button exists at all, and the
@@ -752,9 +824,17 @@ struct ReviewView: View {
             && (model.account != nil || model.submitMode == .dryRun)
     }
 
+    /// In an English app this names the language, because that is the surprising
+    /// part — the body is in Portuguese and the reader may not be. In a
+    /// Portuguese app naming it would be strange, so the pt-PT translation of
+    /// this key just says to read the text. Same key, different sentence.
     private var blockedReason: String {
-        if !isReady { return "Not ready yet" }
-        return "Scroll through the Portuguese text first"
+        if !isReady {
+            return String(localized: "Not ready yet", bundle: locale.bundle, locale: locale)
+        }
+        return String(
+            localized: "Scroll through the Portuguese text first",
+            bundle: locale.bundle, locale: locale)
     }
 
     // MARK: The point of no return
@@ -775,14 +855,22 @@ struct ReviewView: View {
                         .font(.title2.bold())
                         .fixedSize(horizontal: false, vertical: true)
 
-                        Text(
-                            model.submitMode == .live
-                                ? "A council worker will be dispatched to "
-                                    + "\(model.prepared?.location.address ?? "this address"). "
-                                    + "This cannot be undone from the app."
-                                : "Nothing leaves the phone. You get the exact bytes that would "
-                                    + "have been posted."
-                        )
+                        Group {
+                            if model.submitMode == .live {
+                                Text(
+                                    """
+                                    A council worker will be dispatched to \
+                                    \(model.prepared?.location.address ?? "this address"). This \
+                                    cannot be undone from the app.
+                                    """)
+                            } else {
+                                Text(
+                                    """
+                                    Nothing leaves the phone. You get the exact bytes that would \
+                                    have been posted.
+                                    """)
+                            }
+                        }
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
                         .fixedSize(horizontal: false, vertical: true)
@@ -791,12 +879,23 @@ struct ReviewView: View {
                     CardGroup {
                         summaryRow("Where", model.prepared?.location.address ?? "—")
                         RowDivider()
-                        summaryRow("Type", model.type?.descricao ?? "—")
+                        // Both names on the last screen before an irreversible
+                        // act: the council's wording is what is filed, and the
+                        // gloss is how an English reader knows what they just
+                        // agreed to.
+                        summaryRow(
+                            "Type", model.type?.descricao ?? "—",
+                            secondary: model.type?.englishGloss(in: locale))
                         RowDivider()
                         summaryRow(
                             "Mode",
                             model.submitMode == .live
-                                ? "Live — files for real" : "Dry run — nothing is sent")
+                                ? String(
+                                    localized: "Live — files for real",
+                                    bundle: locale.bundle, locale: locale)
+                                : String(
+                                    localized: "Dry run — nothing is sent",
+                                    bundle: locale.bundle, locale: locale))
                     }
 
                     Button(model.submitMode == .live ? "File it" : "Dry run") {
@@ -822,13 +921,23 @@ struct ReviewView: View {
         .presentationDragIndicator(.visible)
     }
 
-    private func summaryRow(_ label: String, _ value: String) -> some View {
+    private func summaryRow(
+        _ label: LocalizedStringKey, _ value: String, secondary: String? = nil
+    ) -> some View {
         HStack(alignment: .top, spacing: 12) {
             Text(label).font(.subheadline).foregroundStyle(.secondary)
             Spacer(minLength: 8)
-            Text(value)
-                .font(.subheadline.weight(.medium))
-                .multilineTextAlignment(.trailing)
+            VStack(alignment: .trailing, spacing: 1) {
+                Text(value)
+                    .font(.subheadline.weight(.medium))
+                    .multilineTextAlignment(.trailing)
+                if let secondary {
+                    Text(secondary)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .multilineTextAlignment(.trailing)
+                }
+            }
         }
         .padding(.horizontal, 14)
         .padding(.vertical, 11)

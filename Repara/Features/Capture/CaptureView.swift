@@ -25,6 +25,7 @@ import SwiftUI
 /// has promised to behave like one, and this one cannot keep that promise.
 struct CaptureView: View {
     @Environment(AppModel.self) private var model
+    @Environment(\.locale) private var locale
     @State private var showingCamera = false
     @State private var noteExpanded = false
     @State private var libraryItem: PhotosPickerItem?
@@ -124,8 +125,10 @@ struct CaptureView: View {
                 Text("No photo yet")
                     .font(.title3.weight(.semibold))
                 Text(
-                    "The council gets the full-resolution original — that is the evidence a "
-                        + "worker acts on. You place the pin exactly on the next screen."
+                    """
+                    The council gets the full-resolution original — that is the evidence a \
+                    worker acts on. You place the pin exactly on the next screen.
+                    """
                 )
                 .font(.callout)
                 .foregroundStyle(.secondary)
@@ -254,10 +257,13 @@ struct CaptureView: View {
     /// *for* is said once in the frame footnote instead of on every launch.
     private var locationLabel: String {
         if let accuracy = model.location.accuracy, model.location.coordinate != nil {
+            // A signed number and a unit symbol; the same in both languages.
             return "±\(Int(accuracy.rounded())) m"
         }
-        if model.location.failure != nil { return "No location yet" }
-        return "Finding you…"
+        if model.location.failure != nil {
+            return String(localized: "No location yet", bundle: locale.bundle, locale: locale)
+        }
+        return String(localized: "Finding you…", bundle: locale.bundle, locale: locale)
     }
 
     // MARK: The bottom third
@@ -281,8 +287,10 @@ struct CaptureView: View {
 
             if !model.hasAPIKey {
                 Text(
-                    "Add a \(model.providerName) API key in Settings to draft automatically, or "
-                        + "write the report yourself."
+                    """
+                    Add a \(model.providerName) API key in Settings to draft automatically, or \
+                    write the report yourself.
+                    """
                 )
                 .reparaFootnote()
             }
@@ -347,8 +355,10 @@ struct CaptureView: View {
                     .focused($editingNote)
 
                     Text(
-                        "Any language — the report is drafted in Portuguese and you read it before "
-                            + "it is filed."
+                        """
+                        Any language — the report is drafted in Portuguese and you read it before \
+                        it is filed.
+                        """
                     )
                     .font(.caption)
                     .foregroundStyle(.secondary)

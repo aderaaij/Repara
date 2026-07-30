@@ -36,6 +36,24 @@ public enum ProjectionError: Error, CustomStringConvertible {
     case selfCheckFailed(driftMetres: Double, expected: PtTm06, got: PtTm06)
     case outsideLisbon(PtTm06)
 
+    /// `selfCheckFailed` is not translated: it prints a drift in metres and two
+    /// coordinate pairs, and it means the app is refusing to submit. That is a
+    /// bug report, not a message.
+    public func message(in locale: Locale) -> String {
+        switch self {
+        case .selfCheckFailed:
+            return description
+        case .outsideLisbon:
+            return String(
+                localized: "projection.outside-lisbon",
+                defaultValue: """
+                    That location is outside the Lisbon municipality, which Na Minha Rua LX \
+                    does not cover.
+                    """,
+                bundle: .module.strings(for: locale), locale: locale)
+        }
+    }
+
     public var description: String {
         switch self {
         case let .selfCheckFailed(drift, expected, got):

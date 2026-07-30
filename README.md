@@ -88,6 +88,18 @@ The one exception to the gate is the report types. All 127, grouped under their
 welcome screen without an account — "what can I even report?" deserves an answer
 before you sign up for anything.
 
+### Two languages, one report
+
+The app is in English and European Portuguese, following your phone unless you
+override it in Settings. Any Portuguese counts as Portuguese, Brazilian
+included; anything else gets English.
+
+**What gets filed is Portuguese either way.** A council worker reads the report
+and acts on it, so the description is written in European Portuguese whatever
+language the app is in — and the Review screen shows you that exact text, and
+lets you edit every word of it, before anything is sent. The setting changes the
+app around the report, never the report.
+
 ---
 
 ## What was carried across, and why it matters
@@ -214,7 +226,7 @@ not the primary mechanism. It is still the only mechanism on Gemini.
 
 ## Status
 
-`swift test` passes 57 tests across 10 suites with no network. The projection
+`swift test` passes 136 tests across 18 suites with no network. The projection
 agrees with proj4 to 2.4 nm across Lisbon and the portal-offset negative test
 passes. The recorded submission is regenerated field-for-field from its
 coordinates. The app builds for the iOS 26 simulator and launches.

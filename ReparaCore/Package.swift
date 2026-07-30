@@ -10,6 +10,7 @@ import PackageDescription
 /// simulator and no network.
 let package = Package(
     name: "ReparaCore",
+    defaultLocalization: "en",
     platforms: [.iOS(.v18), .macOS(.v15)],
     products: [
         .library(name: "ReparaCore", targets: ["ReparaCore"])

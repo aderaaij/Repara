@@ -39,12 +39,19 @@ enum DraftCache {
         photo: Data,
         userText: String,
         provider: ModelProviderID,
-        model: String
+        model: String,
+        replyLanguage: String
     ) -> String? {
         guard isEnabled else { return nil }
         var hash = SHA256()
         hash.update(data: photo)
-        hash.update(data: Data("\u{0}\(userText)\u{0}\(provider.rawValue)\u{0}\(model)".utf8))
+        // The language is part of the key, not incidental to it: `notesForUser`
+        // comes back in whichever language was asked for, so a draft cached in
+        // English is the wrong answer once the app is in Portuguese.
+        hash.update(
+            data: Data(
+                "\u{0}\(userText)\u{0}\(provider.rawValue)\u{0}\(model)\u{0}\(replyLanguage)"
+                    .utf8))
         return hash.finalize().map { String(format: "%02x", $0) }.joined()
     }
 

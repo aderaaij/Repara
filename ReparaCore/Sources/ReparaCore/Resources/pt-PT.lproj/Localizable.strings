@@ -1,0 +1,27 @@
+/* European Portuguese for the errors this package shows the user.
+ *
+ * Hand-maintained, unlike the app's Localizable.xcstrings: SwiftPM copies a
+ * string catalogue into the bundle without compiling it, so `swift test` would
+ * never see the translations. A .lproj is the format SwiftPM actually processes.
+ *
+ * Keys are semantic and every call site carries an English `defaultValue`, so a
+ * key missing here degrades to English rather than printing "portal.login-failed"
+ * at somebody standing in the street.
+ *
+ * Only the errors that ask the user to DO something are here. The diagnostics —
+ * an HTTP status, a content type, a failed projection self-check — stay in
+ * English: they carry paths and coordinates, they exist to be pasted into a bug
+ * report, and translating them helps nobody. */
+
+"portal.session-expired" = "A sua sessão expirou. Inicie sessão outra vez.";
+"portal.login-failed" = "Não foi possível iniciar sessão — o portal não abriu uma sessão. Verifique o e-mail e a palavra-passe. Note que o início de sessão com Google e Apple não funciona aqui; esta app implementa apenas a autenticação nativa da conta.";
+"portal.missing-credentials" = "Não há credenciais do portal guardadas. Inicie sessão nas Definições.";
+"portal.no-address-inside-lisbon" = "Sem morada em %@. O ponto está dentro de Lisboa mas não corresponde nem a um edifício nem a uma rua. Arraste o marcador alguns metros — para a fachada do edifício, ou para a faixa de rodagem.";
+"portal.no-address-outside-lisbon" = "Sem morada em %@. O ponto está fora do município de Lisboa, que o Na Minha Rua LX não abrange.";
+
+"submit.empty-description" = "Descreva o que está errado, para que a câmara possa actuar.";
+"submit.description-too-long" = "A descrição tem %1$lld caracteres; o portal aceita %2$lld. Corte %3$lld — caso contrário o portal trunca-a sem avisar.";
+"submit.confirmation-does-not-match" = "Esta ocorrência mudou depois de ter sido revista. Verifique-a outra vez antes de registar — a confirmação aplica-se exactamente à ocorrência que estava no ecrã.";
+"submit.unexpected-result" = "O portal devolveu algo inesperado: %@. A ocorrência pode ter sido registada ou não — verifique As minhas ocorrências antes de tentar outra vez.";
+
+"projection.outside-lisbon" = "Essa localização está fora do município de Lisboa, que o Na Minha Rua LX não abrange.";
