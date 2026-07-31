@@ -295,8 +295,8 @@ struct ReviewView: View {
                         """)
                     : Text(
                         """
-                        A collection request is scheduled \(place) and not yet done. That is far \
-                        enough to be a different pile — open it and see before you decide.
+                        A collection request is scheduled \(place) and not yet done. Far enough \
+                        to be a different pile — open it and see.
                         """),
                 systemImage: onTheSpot ? "exclamationmark.octagon.fill" : "exclamationmark.triangle",
                 footer: footer
@@ -383,8 +383,13 @@ struct ReviewView: View {
         }
     }
 
-    /// Three whole sentences, joined. Each is translatable on its own; none of
-    /// them is a clause that has to land in a particular position in the next.
+    /// Two whole sentences, joined. Each is translatable on its own; neither is
+    /// a clause that has to land in a particular position in the other.
+    ///
+    /// It used to end on a third — "a duplicate wastes a worker's trip, answer
+    /// this and the check clears" — which explained the two chips sitting
+    /// directly under it and then added a reason to care. The chips are the ask;
+    /// a sentence telling somebody to press them is the card talking past them.
     private func duplicateMessage(_ duplicates: [NearByOccurrence]) -> Text {
         let sameType = model.prepared?.possibleDuplicates.count ?? 0
         // `min(by:)` over a list that may carry `.nan` distances: NaN comparisons
@@ -401,13 +406,8 @@ struct ReviewView: View {
         let source =
             sameType == duplicates.count
             ? Text("Same type, within \(Int(Submitter.duplicateRadiusMetres)) m.")
-            : Text(
-                """
-                \(model.providerName) read the descriptions of these and of anything open under a \
-                related type, because the same problem often gets filed under a different one.
-                """)
-        let tail = Text("A duplicate wastes a worker's trip — answer this and the check clears.")
-        return opening + Text(verbatim: " ") + source + Text(verbatim: " ") + tail
+            : Text("\(model.providerName) also read the reports filed under related types.")
+        return opening + Text(verbatim: " ") + source
     }
 
     private func duplicateFootnote(_ report: NearByOccurrence) -> String {
@@ -421,15 +421,16 @@ struct ReviewView: View {
     /// Named rather than silent: this appears a second after the rest of the
     /// screen, and an unexplained warning that pops in later reads as the app
     /// having changed its mind.
+    ///
+    /// It does not add "that is not an all-clear". The dashed rail and the
+    /// spinner are the claim — that is what the tier signature is for — and the
+    /// app said the same thing in five different places until the words were
+    /// left to the one card where mistaking it matters, `unverifiedCaution`.
     private func pendingCaution(footer: AnyView? = nil) -> some View {
         CautionCard(
             .pending,
             title: Text("Still checking"),
-            message: Text(
-                """
-                Asking whether a collection is already booked here. No answer yet — that is not \
-                an all-clear.
-                """),
+            message: Text("Asking whether a collection is already booked here."),
             systemImage: "clock",
             footer: footer
         ) {
@@ -447,14 +448,19 @@ struct ReviewView: View {
     /// and the honest version of the second is to say so — in the loudest
     /// non-red signature in the set, with no tick and nothing green anywhere
     /// near it.
+    ///
+    /// **This is where that distinction gets its words**, and the title carries
+    /// them. The message used to restate it twice more ("It may be. This is not
+    /// the same as nothing being here."), which is the same claim three times on
+    /// one card.
     private func unverifiedCaution(footer: AnyView? = nil) -> some View {
         CautionCard(
             .unverified,
             title: Text("Not checked — not cleared"),
             message: Text(
                 """
-                The council's server did not answer, so Repara does not know whether a collection \
-                is already booked here. It may be. This is not the same as nothing being here.
+                The council's server did not answer, so Repara could not check whether a \
+                collection is already booked here.
                 """),
             systemImage: "wifi.exclamationmark",
             footer: footer
@@ -494,8 +500,8 @@ struct ReviewView: View {
                 title: Text("The pin matched a street, not a building"),
                 message: Text(
                     """
-                    The report will carry no house number. Drag the pin onto the frontage and the \
-                    address resolves to a door — that is what a council worker navigates by.
+                    The report will carry no house number. Drag the pin onto the frontage and it \
+                    resolves to a door.
                     """),
                 systemImage: "mappin.and.ellipse"
             ) {

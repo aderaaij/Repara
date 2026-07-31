@@ -45,6 +45,10 @@ struct SettingsView: View {
     /// Signed-in only. Settings is behind the gate, so there is no signed-out
     /// state to render here — signing in happens on the welcome screen, and
     /// signing out closes this sheet and hands back to it.
+    ///
+    /// Why the account exists at all is said on that welcome screen, in front of
+    /// somebody deciding whether to make one. Repeating it here left the two
+    /// wordings to drift; this footer says only what the rows below it do.
     @ViewBuilder private var portalSection: some View {
         Section {
             if let account = model.account {
@@ -57,7 +61,7 @@ struct SettingsView: View {
         } header: {
             Text("Na Minha Rua LX")
         } footer: {
-            Text("Reports are filed under this account, so the council knows who reported the problem and can reach you about it. Credentials are stored in the Keychain. Signing out discards the report in progress and returns to the welcome screen.")
+            Text("Credentials are stored in the Keychain. Signing out discards the report in progress.")
         }
     }
 
@@ -87,10 +91,9 @@ struct SettingsView: View {
             Text("Language")
         } footer: {
             Text("""
-                Changes the app. It does not change the report: what you file is written in \
-                European Portuguese whichever language this is set to, because a council worker \
-                reads it and acts on it. You see that text, and can edit every word of it, on the \
-                review screen before anything is sent.
+                Changes the app, not the report. What you file is always European Portuguese, \
+                because a council worker reads it — and you can edit every word of it before \
+                anything is sent.
                 """)
         }
     }
@@ -149,9 +152,7 @@ struct SettingsView: View {
                 description of nearby reports. Never the name, email or reference number of \
                 whoever filed one of those.
 
-                The key cannot be shipped inside the app — anyone could extract it from the \
-                bundle. Enter it once and it stays in the Keychain, which also keeps this app \
-                free of any server of its own.
+                Your key stays in the Keychain on this phone.
                 """)
         }
     }
@@ -181,10 +182,9 @@ struct SettingsView: View {
             Text("\(provider.displayName) models")
         } footer: {
             Text("""
-                Leave these blank for the defaults shown. Drafting picks one of \
-                \(Taxonomy.bundled.types.count) report types from a photograph and routes the \
-                report to a council department, so it uses the stronger model; the duplicate \
-                check only compares a few sentences against the reports already nearby.
+                Leave blank for the defaults shown. Drafting reads a photograph and picks one of \
+                \(Taxonomy.bundled.types.count) types, so it uses the stronger model; the \
+                duplicate check only compares a few sentences.
                 """)
         }
     }
@@ -205,6 +205,13 @@ struct SettingsView: View {
 
     // MARK: Submit mode
 
+    /// The footer states the consequence and stops there.
+    ///
+    /// It used to end "Do not test by filing. Every test submission is a real
+    /// dispatch." That is `CLAUDE.md`'s rule, and it is addressed to whoever is
+    /// working on this app — somebody who turns this toggle on to report a
+    /// mattress is not testing anything. It reads as an accusation to the one
+    /// person on the screen who cannot be the intended audience.
     @ViewBuilder private var submitModeSection: some View {
         @Bindable var model = model
 
@@ -222,10 +229,8 @@ struct SettingsView: View {
         } footer: {
             Text("""
                 Off, Repara builds the exact payload and shows it to you without sending \
-                anything. On, filing creates a real work order: a council worker reads it and \
-                is dispatched, and there is no way to withdraw it from the app.
-
-                Do not test by filing. Every test submission is a real dispatch.
+                anything. On, filing creates a real work order: a council worker is dispatched, \
+                and there is no way to withdraw it from the app.
                 """)
         }
     }
@@ -246,11 +251,9 @@ struct SettingsView: View {
             Text("About")
         } footer: {
             Text("""
-                Coordinates are projected to EPSG:3763 on this phone. The portal's own map \
-                picker delegates that to a server call which applies a spurious datum shift and \
-                lands 114 m away — that bug is why this app exists, so the projection is \
-                checked against a known reference point at launch and again before every \
-                submission.
+                Coordinates are projected to EPSG:3763 on this phone rather than by the portal's \
+                server, which lands 114 m off. Checked against a reference point at launch and \
+                before every submission.
                 """)
         }
     }

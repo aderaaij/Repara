@@ -7,6 +7,11 @@ import SwiftUI
 /// Closed is green here, unlike on the Browse screen: on your own report closed
 /// means the council did the thing. On somebody else's it must never read as an
 /// argument against filing.
+///
+/// Which is why this screen does not carry the "a closed report is not proof the
+/// problem is gone" footnote it used to. Green above and that sentence below
+/// were the same screen disagreeing with itself, and the claim belongs where
+/// somebody is reading a *stranger's* finished report — `OccurrenceSheet`.
 struct StatusView: View {
     @Environment(AppModel.self) private var model
 
@@ -29,13 +34,8 @@ struct StatusView: View {
                 }
 
                 if !reports.isEmpty {
-                    Text(
-                        """
-                        \(reports.count) filed from this account. Status comes from the council, \
-                        not from Repara.
-                        """
-                    )
-                    .reparaFootnote()
+                    Text("\(reports.count) filed from this account. Statuses come from the council.")
+                        .reparaFootnote()
 
                     CardGroup {
                         ForEach(Array(reports.enumerated()), id: \.element.id) { index, report in
@@ -43,14 +43,6 @@ struct StatusView: View {
                             row(report)
                         }
                     }
-
-                    Text(
-                        """
-                        A closed report is not proof the problem is gone. If it is still there, \
-                        file it again — that is what the council's own process expects.
-                        """
-                    )
-                    .reparaFootnote()
                 }
             }
             .padding(.horizontal, 16)

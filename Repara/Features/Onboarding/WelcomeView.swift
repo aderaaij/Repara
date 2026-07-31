@@ -117,7 +117,7 @@ struct WelcomeView: View {
     }
 
     private var footnote: some View {
-        Text("Creating an account opens the council's own site in Safari. Repara does not host that form: signing up means agreeing to the council's privacy and data-protection terms, which is between you and them.")
+        Text("Creating an account opens the council's own site in Safari — signing up means agreeing to their privacy and data-protection terms.")
             .font(.caption2)
             .foregroundStyle(.tertiary)
             .multilineTextAlignment(.center)
@@ -159,7 +159,7 @@ struct SignInView: View {
                 } header: {
                     Text("Na Minha Rua LX")
                 } footer: {
-                    Text("Only the native email and password login works; Google and Apple sign-in are not implemented. Credentials go in the Keychain.")
+                    Text("Only email and password sign-in works — not Google or Apple. Credentials go in the Keychain.")
                 }
 
                 Section {
