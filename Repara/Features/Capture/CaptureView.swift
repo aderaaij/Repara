@@ -126,8 +126,8 @@ struct CaptureView: View {
                     .font(.title3.weight(.semibold))
                 Text(
                     """
-                    The council gets the full-resolution original — that is the evidence a \
-                    worker acts on. You place the pin exactly on the next screen.
+                    The council gets the full-resolution original. You place the pin on the \
+                    next screen.
                     """
                 )
                 .font(.callout)
@@ -354,14 +354,11 @@ struct CaptureView: View {
                     .lineLimit(1...4)
                     .focused($editingNote)
 
-                    Text(
-                        """
-                        Any language — the report is drafted in Portuguese and you read it before \
-                        it is filed.
-                        """
-                    )
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+                    // "…and you read it before it is filed" came off the end:
+                    // Review says so where it is true, under the text itself.
+                    Text("Any language — the report is drafted in Portuguese.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
                 }
             } else {
                 Button {

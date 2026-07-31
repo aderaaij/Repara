@@ -83,7 +83,7 @@ enum ModelError: Error, CustomStringConvertible {
             return String(
                 localized: """
                     No \(provider.displayName) API key stored. Add one in Settings — it stays in \
-                    the Keychain and never leaves this phone except to \(provider.host).
+                    the Keychain on this phone.
                     """,
                 bundle: locale.bundle, locale: locale)
         case let .refused(provider, category, explanation):
@@ -111,7 +111,7 @@ enum ModelError: Error, CustomStringConvertible {
         case let .missingAPIKey(provider):
             return """
                 No \(provider.displayName) API key stored. Add one in Settings — it stays in the \
-                Keychain and never leaves this phone except to \(provider.host).
+                Keychain on this phone.
                 """
         case let .refused(provider, category, explanation):
             let detail = [category, explanation].compactMap { $0 }.joined(separator: ": ")

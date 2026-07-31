@@ -79,7 +79,7 @@ private struct TypeList: View {
             if selection == nil && query.isEmpty {
                 Section {
                 } footer: {
-                    Text("\(taxonomy.types.count) types across \(taxonomy.areas.count) council areas, bundled with the app rather than fetched. The area is part of the answer: several types share wording and route to different desks.")
+                    Text("\(taxonomy.types.count) types across \(taxonomy.areas.count) council areas. Several share wording and route to different desks, so the area is part of the answer.")
                 }
             }
         }
@@ -136,7 +136,7 @@ private struct TypeList: View {
             } header: {
                 Text("Chosen")
             } footer: {
-                Text("The type decides which council department is dispatched. Several types are worded alike across departments.")
+                Text("The type decides which council department is dispatched.")
             }
         }
     }

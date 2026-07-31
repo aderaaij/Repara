@@ -107,15 +107,17 @@ struct OccurrenceSheet: View {
                     .fixedSize(horizontal: false, vertical: true)
             }
 
+            // **The one place the app says this.** A closed report is not an
+            // argument against filing, and that claim used to appear five times
+            // across Browse, this sheet and Status — twice on one screen. Here
+            // is where somebody is actually looking at a finished report and
+            // could conclude the problem is handled, so here is where it earns
+            // its space; everywhere else it was the app repeating itself.
             Group {
                 if isOpen {
                     Text("Still open with the council.")
                 } else {
-                    Text(
-                        """
-                        The council has marked this one done — which is a reason to file if the \
-                        problem is back, not a reason to stay quiet.
-                        """)
+                    Text("Marked done by the council. If the problem is back, file it again.")
                 }
             }
             .font(.subheadline)
@@ -403,24 +405,20 @@ struct OccurrenceSheet: View {
 
     // MARK: Footnotes
 
+    /// One, and it answers a question the screen raises: there is a map here and
+    /// no address, and the reason is that the address was never decoded.
+    ///
+    /// The other footnote explained that photographs are a second request made
+    /// only on opening. That is a fact about this app's request budget — real,
+    /// and of no use to somebody looking at somebody else's pothole.
     private var footnotes: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text(
-                """
-                The list this came from carries no photographs; those are a second request, \
-                made only when a report is opened.
-                """
-            )
-            .reparaFootnote()
-
-            Text(
-                """
-                The reporter's name, email and street address arrive with it and are never \
-                decoded, so Repara cannot show them.
-                """
-            )
-            .reparaFootnote()
-        }
+        Text(
+            """
+            The reporter's name, email and address are never decoded, so Repara cannot show \
+            them.
+            """
+        )
+        .reparaFootnote()
         .padding(.top, 2)
     }
 }

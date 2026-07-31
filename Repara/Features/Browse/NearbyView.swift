@@ -288,9 +288,10 @@ struct NearbyView: View {
     private var scopeLine: String {
         let radius = browser.radiusMetres
         guard browser.typeFilter != nil else {
+            // "· one request" used to hang off the end. What this costs the
+            // council is a rule this app keeps, not a fact its reader needs.
             return String(
-                localized: "Every type, within \(radius) m · one request",
-                bundle: locale.bundle, locale: locale)
+                localized: "Every type, within \(radius) m", bundle: locale.bundle, locale: locale)
         }
         let hidden = browser.found.count - browser.results.count
         // Pluralised in the catalogue rather than by appending an "s".
@@ -316,7 +317,7 @@ struct NearbyView: View {
                         message: Text(
                             """
                             The council's server did not answer for this area, so nothing is \
-                            being shown: an empty list here would be a lie. \(failure)
+                            listed. \(failure)
                             """),
                         systemImage: "wifi.exclamationmark"
                     ) {
@@ -337,8 +338,6 @@ struct NearbyView: View {
 
                 if !browser.results.isEmpty {
                     resultsList
-                    Text("Nothing on this screen files anything.")
-                        .reparaFootnote()
                 } else if showsNothingFound {
                     nothingFound
                 }
@@ -399,14 +398,6 @@ struct NearbyView: View {
                         }
                     }
                 }
-
-                Text(
-                    """
-                    A finished report is a reason to file — if the problem is back in the \
-                    street, the council needs telling again.
-                    """
-                )
-                .reparaFootnote()
             }
         }
     }
@@ -519,22 +510,26 @@ struct NearbyView: View {
         Calendar.current.component(.year, from: .now)
     }
 
-    /// The one line the collapsed history gets to say for itself. The span goes
-    /// first: how far back this reaches is the reason to open it.
+    /// The one line the collapsed history gets to say for itself, and it says
+    /// the span: how far back this reaches is the reason to open it.
+    ///
+    /// It used to say "context, never an argument against filing" — with a
+    /// footnote directly underneath the same group saying it again in other
+    /// words, and `OccurrenceSheet` saying it a third time one tap in. The claim
+    /// is true and it now lives there, next to the single closed report somebody
+    /// might actually misread. A row whose job is to describe what is inside it
+    /// should describe what is inside it.
     private func closedSubtitle(_ closed: [NearByOccurrence]) -> String {
         guard let years = closed.filedYears else {
             return String(
-                localized: "Context — never an argument against filing",
-                bundle: locale.bundle, locale: locale)
+                localized: "Context for this spot", bundle: locale.bundle, locale: locale)
         }
         // Years built with `String(_:)` for the same reason as `closedLine`.
         let span =
             years.lowerBound == years.upperBound
             ? String(years.lowerBound)
             : "\(String(years.lowerBound))–\(String(years.upperBound))"
-        return String(
-            localized: "\(span) · context, never an argument against filing",
-            bundle: locale.bundle, locale: locale)
+        return String(localized: "Filed \(span)", bundle: locale.bundle, locale: locale)
     }
 
     /// Amber keyline for open, grey for closed, and the closed ones sit on a
@@ -676,17 +671,16 @@ struct NearbyView: View {
                     .multilineTextAlignment(.center)
                     .padding(.top, 14)
 
-                Text(
-                    """
-                    No open report of any type inside that circle. Move the map and search \
-                    again to check somewhere else — this says nothing about the next street.
-                    """
-                )
-                .font(.callout)
-                .foregroundStyle(.secondary)
-                .multilineTextAlignment(.center)
-                .fixedSize(horizontal: false, vertical: true)
-                .padding(.top, 7)
+                // The boundary is already in the heading above, which is where
+                // this screen's rule puts it. Spelling out "this says nothing
+                // about the next street" underneath restated the heading and
+                // was one of five near-identical disclaimers across the app.
+                Text("Move the map and search again to check somewhere else.")
+                    .font(.callout)
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .padding(.top, 7)
             }
             .padding(.horizontal, 10)
             .padding(.top, 26)

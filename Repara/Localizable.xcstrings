@@ -1,6 +1,16 @@
 {
   "sourceLanguage": "en",
   "strings": {
+    "%@ also read the reports filed under related types.": {
+      "localizations": {
+        "pt-PT": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O %@ leu também as ocorrências registadas em tipos relacionados."
+          }
+        }
+      }
+    },
     "%@ declined this request. Write the description yourself and pick a type — everything else still works.": {
       "localizations": {
         "pt-PT": {
@@ -37,26 +47,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "O %@ escolhe um de 127 tipos de ocorrência e redige o texto em português. Pode ler e editar ambos antes de submeter."
-          }
-        }
-      }
-    },
-    "%@ read the descriptions of these and of anything open under a related type, because the same problem often gets filed under a different one.": {
-      "localizations": {
-        "pt-PT": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "O %@ leu as descrições destas e de outras abertas em tipos relacionados, porque o mesmo problema é muitas vezes registado noutro tipo."
-          }
-        }
-      }
-    },
-    "%@ · context, never an argument against filing": {
-      "localizations": {
-        "pt-PT": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%@ · contexto, nunca um argumento contra registar"
           }
         }
       }
@@ -373,12 +363,12 @@
         }
       }
     },
-    "%lld filed from this account. Status comes from the council, not from Repara.": {
+    "%lld filed from this account. Statuses come from the council.": {
       "localizations": {
         "pt-PT": {
           "stringUnit": {
             "state": "translated",
-            "value": "%lld registadas nesta conta. O estado vem da câmara, não da Repara."
+            "value": "%lld registadas nesta conta. Os estados vêm da câmara."
           }
         }
       }
@@ -465,18 +455,18 @@
         }
       }
     },
-    "%lld types across %lld council areas, bundled with the app rather than fetched. The area is part of the answer: several types share wording and route to different desks.": {
+    "%lld types across %lld council areas. Several share wording and route to different desks, so the area is part of the answer.": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "new",
-            "value": "%1$lld types across %2$lld council areas, bundled with the app rather than fetched. The area is part of the answer: several types share wording and route to different desks."
+            "value": "%1$lld types across %2$lld council areas. Several share wording and route to different desks, so the area is part of the answer."
           }
         },
         "pt-PT": {
           "stringUnit": {
             "state": "translated",
-            "value": "%1$lld tipos em %2$lld áreas municipais, incluídos na app em vez de descarregados. A área faz parte da resposta: vários tipos têm a mesma designação e seguem para serviços diferentes."
+            "value": "%1$lld tipos em %2$lld áreas municipais. Vários têm a mesma designação e seguem para serviços diferentes, por isso a área faz parte da resposta."
           }
         }
       }
@@ -501,16 +491,6 @@
         }
       }
     },
-    "A closed report is not proof the problem is gone. If it is still there, file it again — that is what the council's own process expects.": {
-      "localizations": {
-        "pt-PT": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Uma ocorrência fechada não é prova de que o problema desapareceu. Se ainda lá está, registe-a outra vez — é isso que o processo da própria câmara espera."
-          }
-        }
-      }
-    },
     "A collection request %@ is scheduled and not yet done. Filing sends a second worker to a job that is already on the list.": {
       "localizations": {
         "pt-PT": {
@@ -521,12 +501,12 @@
         }
       }
     },
-    "A collection request is scheduled %@ and not yet done. That is far enough to be a different pile — open it and see before you decide.": {
+    "A collection request is scheduled %@ and not yet done. Far enough to be a different pile — open it and see.": {
       "localizations": {
         "pt-PT": {
           "stringUnit": {
             "state": "translated",
-            "value": "Há um pedido de recolha agendado %@ e ainda por executar. É longe o suficiente para ser outro monte — abra e veja antes de decidir."
+            "value": "Há um pedido de recolha agendado %@ e ainda por fazer. Longe o suficiente para ser outra pilha — abra e veja."
           }
         }
       }
@@ -547,26 +527,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Uma simulação funciona sem sessão. Registar não — inicie sessão nas Definições primeiro."
-          }
-        }
-      }
-    },
-    "A duplicate wastes a worker's trip — answer this and the check clears.": {
-      "localizations": {
-        "pt-PT": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Um duplicado desperdiça a deslocação de um funcionário — responda e a verificação fica resolvida."
-          }
-        }
-      }
-    },
-    "A finished report is a reason to file — if the problem is back in the street, the council needs telling again.": {
-      "localizations": {
-        "pt-PT": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Uma ocorrência concluída é uma razão para registar — se o problema voltou à rua, a câmara precisa de saber outra vez."
           }
         }
       }
@@ -691,12 +651,12 @@
         }
       }
     },
-    "Any language — the report is drafted in Portuguese and you read it before it is filed.": {
+    "Any language — the report is drafted in Portuguese.": {
       "localizations": {
         "pt-PT": {
           "stringUnit": {
             "state": "translated",
-            "value": "Em qualquer língua — a ocorrência é redigida em português e pode lê-la antes de ser registada."
+            "value": "Em qualquer língua — a ocorrência é redigida em português."
           }
         }
       }
@@ -711,12 +671,12 @@
         }
       }
     },
-    "Asking whether a collection is already booked here. No answer yet — that is not an all-clear.": {
+    "Asking whether a collection is already booked here.": {
       "localizations": {
         "pt-PT": {
           "stringUnit": {
             "state": "translated",
-            "value": "A perguntar se já há uma recolha agendada aqui. Ainda sem resposta — isso não é sinal de que não há."
+            "value": "A perguntar se já há uma recolha agendada aqui."
           }
         }
       }
@@ -781,12 +741,12 @@
         }
       }
     },
-    "Changes the app. It does not change the report: what you file is written in European Portuguese whichever language this is set to, because a council worker reads it and acts on it. You see that text, and can edit every word of it, on the review screen before anything is sent.": {
+    "Changes the app, not the report. What you file is always European Portuguese, because a council worker reads it — and you can edit every word of it before anything is sent.": {
       "localizations": {
         "pt-PT": {
           "stringUnit": {
             "state": "translated",
-            "value": "Muda a app. Não muda a ocorrência: o que regista é escrito em português europeu seja qual for a língua definida aqui, porque é um funcionário da câmara que o lê e actua sobre ele. Vê esse texto, e pode editar todas as palavras, no ecrã de revisão antes de enviar seja o que for."
+            "value": "Muda a app, não a ocorrência. O que regista é sempre em português europeu, porque é um funcionário da câmara que o lê — e pode editar todas as palavras antes de enviar seja o que for."
           }
         }
       }
@@ -841,22 +801,22 @@
         }
       }
     },
-    "Context — never an argument against filing": {
+    "Context for this spot": {
       "localizations": {
         "pt-PT": {
           "stringUnit": {
             "state": "translated",
-            "value": "Contexto — nunca um argumento contra registar"
+            "value": "Contexto sobre este sítio"
           }
         }
       }
     },
-    "Coordinates are projected to EPSG:3763 on this phone. The portal's own map picker delegates that to a server call which applies a spurious datum shift and lands 114 m away — that bug is why this app exists, so the projection is checked against a known reference point at launch and again before every submission.": {
+    "Coordinates are projected to EPSG:3763 on this phone rather than by the portal's server, which lands 114 m off. Checked against a reference point at launch and before every submission.": {
       "localizations": {
         "pt-PT": {
           "stringUnit": {
             "state": "translated",
-            "value": "As coordenadas são projectadas para EPSG:3763 neste telemóvel. O seletor de mapa do próprio portal delega isso num pedido ao servidor que aplica uma transformação de datum indevida e cai 114 m ao lado — esse erro é a razão de existir desta app, por isso a projecção é verificada contra um ponto de referência conhecido no arranque e outra vez antes de cada submissão."
+            "value": "As coordenadas são projectadas para EPSG:3763 neste telemóvel em vez de no servidor do portal, que erra por 114 m. Verificadas contra um ponto de referência no arranque e antes de cada submissão."
           }
         }
       }
@@ -891,12 +851,22 @@
         }
       }
     },
-    "Creating an account opens the council's own site in Safari. Repara does not host that form: signing up means agreeing to the council's privacy and data-protection terms, which is between you and them.": {
+    "Creating an account opens the council's own site in Safari — signing up means agreeing to their privacy and data-protection terms.": {
       "localizations": {
         "pt-PT": {
           "stringUnit": {
             "state": "translated",
-            "value": "Criar uma conta abre o site da própria câmara no Safari. A Repara não aloja esse formulário: inscrever-se implica aceitar os termos de privacidade e protecção de dados da câmara, o que é entre si e ela."
+            "value": "Criar uma conta abre o site da própria câmara no Safari — registar-se implica aceitar os termos de privacidade e de protecção de dados dela."
+          }
+        }
+      }
+    },
+    "Credentials are stored in the Keychain. Signing out discards the report in progress.": {
+      "localizations": {
+        "pt-PT": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "As credenciais ficam guardadas no Porta-chaves. Terminar sessão descarta a ocorrência em curso."
           }
         }
       }
@@ -1041,12 +1011,12 @@
         }
       }
     },
-    "Every type, within %lld m · one request": {
+    "Every type, within %lld m": {
       "localizations": {
         "pt-PT": {
           "stringUnit": {
             "state": "translated",
-            "value": "Todos os tipos, a menos de %lld m · um pedido"
+            "value": "Todos os tipos, a menos de %lld m"
           }
         }
       }
@@ -1261,12 +1231,12 @@
         }
       }
     },
-    "Leave these blank for the defaults shown. Drafting picks one of %lld report types from a photograph and routes the report to a council department, so it uses the stronger model; the duplicate check only compares a few sentences against the reports already nearby.": {
+    "Leave blank for the defaults shown. Drafting reads a photograph and picks one of %lld types, so it uses the stronger model; the duplicate check only compares a few sentences.": {
       "localizations": {
         "pt-PT": {
           "stringUnit": {
             "state": "translated",
-            "value": "Deixe em branco para usar os valores predefinidos indicados. A redacção escolhe um de %lld tipos de ocorrência a partir de uma fotografia e encaminha a ocorrência para um serviço da câmara, por isso usa o modelo mais forte; a verificação de duplicados apenas compara algumas frases com as ocorrências já próximas."
+            "value": "Deixe em branco para usar os valores predefinidos indicados. A redacção lê uma fotografia e escolhe um de %lld tipos, por isso usa o modelo mais forte; a verificação de duplicados apenas compara algumas frases."
           }
         }
       }
@@ -1311,6 +1281,16 @@
         }
       }
     },
+    "Marked done by the council. If the problem is back, file it again.": {
+      "localizations": {
+        "pt-PT": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Marcada como concluída pela câmara. Se o problema voltou, registe-a outra vez."
+          }
+        }
+      }
+    },
     "Mine": {
       "localizations": {
         "pt-PT": {
@@ -1327,6 +1307,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Modo"
+          }
+        }
+      }
+    },
+    "Move the map and search again to check somewhere else.": {
+      "localizations": {
+        "pt-PT": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mova o mapa e procure outra vez para verificar noutro sítio."
           }
         }
       }
@@ -1354,18 +1344,12 @@
         }
       }
     },
-    "No %@ API key stored. Add one in Settings — it stays in the Keychain and never leaves this phone except to %@.": {
+    "No %@ API key stored. Add one in Settings — it stays in the Keychain on this phone.": {
       "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "new",
-            "value": "No %1$@ API key stored. Add one in Settings — it stays in the Keychain and never leaves this phone except to %2$@."
-          }
-        },
         "pt-PT": {
           "stringUnit": {
             "state": "translated",
-            "value": "Não há nenhuma chave de API %1$@ guardada. Adicione uma nas Definições — fica no Porta-chaves e nunca sai deste telemóvel excepto para %2$@."
+            "value": "Não há nenhuma chave de API %@ guardada. Adicione uma nas Definições — fica no Porta-chaves deste telemóvel."
           }
         }
       }
@@ -1376,16 +1360,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Ainda sem localização"
-          }
-        }
-      }
-    },
-    "No open report of any type inside that circle. Move the map and search again to check somewhere else — this says nothing about the next street.": {
-      "localizations": {
-        "pt-PT": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Nenhuma ocorrência aberta de qualquer tipo dentro desse círculo. Mova o mapa e procure outra vez para verificar noutro sítio — isto não diz nada sobre a rua seguinte."
           }
         }
       }
@@ -1570,16 +1544,6 @@
         }
       }
     },
-    "Nothing on this screen files anything.": {
-      "localizations": {
-        "pt-PT": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Nada neste ecrã regista seja o que for."
-          }
-        }
-      }
-    },
     "Nothing open *under %@* here": {
       "localizations": {
         "pt-PT": {
@@ -1653,12 +1617,12 @@
         }
       }
     },
-    "Off, Repara builds the exact payload and shows it to you without sending anything. On, filing creates a real work order: a council worker reads it and is dispatched, and there is no way to withdraw it from the app.\n\nDo not test by filing. Every test submission is a real dispatch.": {
+    "Off, Repara builds the exact payload and shows it to you without sending anything. On, filing creates a real work order: a council worker is dispatched, and there is no way to withdraw it from the app.": {
       "localizations": {
         "pt-PT": {
           "stringUnit": {
             "state": "translated",
-            "value": "Desligado, a Repara constrói o pedido exacto e mostra-lho sem enviar nada. Ligado, registar cria uma ordem de trabalho real: um funcionário da câmara lê-a e é enviado, e não há forma de a retirar a partir da app.\n\nNão teste registando. Cada submissão de teste é um envio real."
+            "value": "Desligado, a Repara constrói o pedido exacto e mostra-lho sem enviar nada. Ligado, registar cria uma ordem de trabalho real: um funcionário da câmara é enviado, e não há forma de a retirar a partir da app."
           }
         }
       }
@@ -1673,12 +1637,12 @@
         }
       }
     },
-    "Only the native email and password login works; Google and Apple sign-in are not implemented. Credentials go in the Keychain.": {
+    "Only email and password sign-in works — not Google or Apple. Credentials go in the Keychain.": {
       "localizations": {
         "pt-PT": {
           "stringUnit": {
             "state": "translated",
-            "value": "Só funciona a autenticação nativa com e-mail e palavra-passe; o início de sessão com Google e Apple não está implementado. As credenciais ficam no Porta-chaves."
+            "value": "Só funciona o início de sessão com e-mail e palavra-passe — não com Google nem Apple. As credenciais ficam no Porta-chaves."
           }
         }
       }
@@ -1856,16 +1820,6 @@
         }
       }
     },
-    "Reports are filed under this account, so the council knows who reported the problem and can reach you about it. Credentials are stored in the Keychain. Signing out discards the report in progress and returns to the welcome screen.": {
-      "localizations": {
-        "pt-PT": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "As ocorrências são registadas nesta conta, para que a câmara saiba quem comunicou o problema e o possa contactar. As credenciais são guardadas no Porta-chaves. Terminar sessão descarta a ocorrência em curso e volta ao ecrã inicial."
-          }
-        }
-      }
-    },
     "Reports you file from this account show up here.": {
       "localizations": {
         "pt-PT": {
@@ -1996,12 +1950,12 @@
         }
       }
     },
-    "Sent to %@: the downscaled photo, what you typed, the report-type list, and — for the duplicate check — the type, status, distance and public description of nearby reports. Never the name, email or reference number of whoever filed one of those.\n\nThe key cannot be shipped inside the app — anyone could extract it from the bundle. Enter it once and it stays in the Keychain, which also keeps this app free of any server of its own.": {
+    "Sent to %@: the downscaled photo, what you typed, the report-type list, and — for the duplicate check — the type, status, distance and public description of nearby reports. Never the name, email or reference number of whoever filed one of those.\n\nYour key stays in the Keychain on this phone.": {
       "localizations": {
         "pt-PT": {
           "stringUnit": {
             "state": "translated",
-            "value": "Enviado para %@: a fotografia reduzida, o que escreveu, a lista de tipos de ocorrência e — para a verificação de duplicados — o tipo, o estado, a distância e a descrição pública das ocorrências próximas. Nunca o nome, o e-mail ou o número de referência de quem registou alguma delas.\n\nA chave não pode ser distribuída dentro da app — qualquer pessoa a conseguiria extrair do pacote. Introduza-a uma vez e fica no Porta-chaves, o que também mantém esta app sem qualquer servidor próprio."
+            "value": "Enviado para %@: a fotografia reduzida, o que escreveu, a lista de tipos de ocorrência e — para a verificação de duplicados — o tipo, o estado, a distância e a descrição pública das ocorrências próximas. Nunca o nome, o e-mail ou o número de referência de quem registou alguma delas.\n\nA sua chave fica no Porta-chaves deste telemóvel."
           }
         }
       }
@@ -2146,52 +2100,32 @@
         }
       }
     },
-    "The council gets the full-resolution original — that is the evidence a worker acts on. You place the pin exactly on the next screen.": {
+    "The council gets the full-resolution original. You place the pin on the next screen.": {
       "localizations": {
         "pt-PT": {
           "stringUnit": {
             "state": "translated",
-            "value": "A câmara recebe o original em resolução máxima — é essa a prova sobre a qual o funcionário actua. O marcador é colocado com precisão no ecrã seguinte."
+            "value": "A câmara recebe o original em resolução máxima. O marcador é colocado no ecrã seguinte."
           }
         }
       }
     },
-    "The council has marked this one done — which is a reason to file if the problem is back, not a reason to stay quiet.": {
+    "The council's server did not answer for this area, so nothing is listed. %@": {
       "localizations": {
         "pt-PT": {
           "stringUnit": {
             "state": "translated",
-            "value": "A câmara marcou esta como concluída — o que é uma razão para registar se o problema voltou, não uma razão para ficar calado."
+            "value": "O servidor da câmara não respondeu sobre esta área, por isso não há nada listado. %@"
           }
         }
       }
     },
-    "The council's server did not answer for this area, so nothing is being shown: an empty list here would be a lie. %@": {
+    "The council's server did not answer, so Repara could not check whether a collection is already booked here.": {
       "localizations": {
         "pt-PT": {
           "stringUnit": {
             "state": "translated",
-            "value": "O servidor da câmara não respondeu para esta área, por isso não é mostrado nada: uma lista vazia aqui seria mentira. %@"
-          }
-        }
-      }
-    },
-    "The council's server did not answer, so Repara does not know whether a collection is already booked here. It may be. This is not the same as nothing being here.": {
-      "localizations": {
-        "pt-PT": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "O servidor da câmara não respondeu, por isso a Repara não sabe se já há uma recolha agendada aqui. Pode haver. Isto não é o mesmo que não haver nada."
-          }
-        }
-      }
-    },
-    "The list this came from carries no photographs; those are a second request, made only when a report is opened.": {
-      "localizations": {
-        "pt-PT": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "A lista de onde isto veio não traz fotografias; essas são um segundo pedido, feito apenas quando se abre uma ocorrência."
+            "value": "O servidor da câmara não respondeu, por isso a Repara não conseguiu verificar se já há uma recolha agendada aqui."
           }
         }
       }
@@ -2226,32 +2160,32 @@
         }
       }
     },
-    "The report will carry no house number. Drag the pin onto the frontage and the address resolves to a door — that is what a council worker navigates by.": {
+    "The report will carry no house number. Drag the pin onto the frontage and it resolves to a door.": {
       "localizations": {
         "pt-PT": {
           "stringUnit": {
             "state": "translated",
-            "value": "A ocorrência não levará número de porta. Arraste o marcador para a fachada e a morada passa a corresponder a uma porta — é por aí que um funcionário da câmara se orienta."
+            "value": "A ocorrência não levará número de porta. Arraste o marcador para a fachada e passa a corresponder a uma porta."
           }
         }
       }
     },
-    "The reporter's name, email and street address arrive with it and are never decoded, so Repara cannot show them.": {
+    "The reporter's name, email and address are never decoded, so Repara cannot show them.": {
       "localizations": {
         "pt-PT": {
           "stringUnit": {
             "state": "translated",
-            "value": "O nome, o e-mail e a morada de quem comunicou vêm com ela e nunca são descodificados, por isso a Repara não os consegue mostrar."
+            "value": "O nome, o e-mail e a morada de quem registou nunca são descodificados, por isso a Repara não os pode mostrar."
           }
         }
       }
     },
-    "The type decides which council department is dispatched. Several types are worded alike across departments.": {
+    "The type decides which council department is dispatched.": {
       "localizations": {
         "pt-PT": {
           "stringUnit": {
             "state": "translated",
-            "value": "O tipo decide que serviço da câmara é accionado. Vários tipos têm designações parecidas em serviços diferentes."
+            "value": "O tipo decide que serviço da câmara é enviado."
           }
         }
       }
