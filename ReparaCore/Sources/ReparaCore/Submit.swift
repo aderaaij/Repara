@@ -21,6 +21,46 @@ public struct Photo: Sendable, Identifiable, Equatable {
         self.data = jpeg
         self.filename = filename
     }
+
+    /// How many photographs one report may carry.
+    ///
+    /// The portal's own form counts them and stops at three: `report.html`
+    /// shows `adicionar Foto 1/2/3` in turn and, once `chkFotoNumber > 2`,
+    /// swaps in a dead button reading *"Só é possivel adicionar 3 fotos!"*.
+    ///
+    /// That is a **client-side** count, which is exactly why this cap is
+    /// enforced here too. A fourth part would probably be accepted by the
+    /// endpoint and then quietly dropped — and silently losing one of the
+    /// photographs somebody walked out to take is worse than refusing to take
+    /// a fourth in the first place.
+    public static let maxPerReport = 3
+
+    /// The byte budget for one photograph.
+    ///
+    /// **Inferred, and deliberately nowhere near the ceiling it infers.** There
+    /// are three data points and not one of them is a documented limit:
+    ///
+    /// | Request | Photos | Result |
+    /// | --- | --- | --- |
+    /// | 4 844 588 B, the captured browser session | 1 | 201 |
+    /// | ~6.8 MB, the TypeScript client | 2 | 201 |
+    /// | ~6 MB, this client | 1 | 500, body mentioning size |
+    ///
+    /// The only reading that fits all three is a limit **per file** rather than
+    /// per request: 4.8 MB in one file was fine, ~3.4 MB each in two files was
+    /// fine, and ~6 MB in one file was not. So the per-file ceiling sits
+    /// somewhere between 4.84 MB and ~6 MB, and the whole-request ceiling is at
+    /// least 6.8 MB. Note that the failure arrived as a **500**, not a 413 —
+    /// the size was in the body, so nothing can be concluded from a status code
+    /// alone here.
+    ///
+    /// Narrowing it further would mean filing real reports until one is
+    /// refused, and every attempt that *succeeds* dispatches a council worker.
+    /// So this does not probe it. 1.2 MB is a quarter of the smallest size known
+    /// to have been accepted; three of them still come in under that one
+    /// verified request; and a 2048 px JPEG of a street scene rarely reaches it
+    /// anyway. `PhotoScaler` is what holds photographs to it.
+    public static let maxBytes = 1_200_000
 }
 
 // MARK: - Errors
@@ -28,6 +68,7 @@ public struct Photo: Sendable, Identifiable, Equatable {
 public enum SubmitError: Error, CustomStringConvertible {
     case emptyDescription
     case descriptionTooLong(count: Int, max: Int)
+    case tooManyPhotos(count: Int, max: Int)
     case confirmationDoesNotMatch
     case unexpectedResult(String)
 
@@ -46,6 +87,14 @@ public enum SubmitError: Error, CustomStringConvertible {
                 defaultValue: """
                     The description is \(count) characters; the portal accepts \(max). Trim it by \
                     \(count - max) — the portal would otherwise truncate it without saying so.
+                    """,
+                bundle: .module.strings(for: locale), locale: locale)
+        case let .tooManyPhotos(count, max):
+            return String(
+                localized: "submit.too-many-photos",
+                defaultValue: """
+                    This report has \(count) photographs; Na Minha Rua LX takes \(max). Remove \
+                    \(count - max) — the portal would otherwise drop them without saying which.
                     """,
                 bundle: .module.strings(for: locale), locale: locale)
         case .confirmationDoesNotMatch:
@@ -75,6 +124,11 @@ public enum SubmitError: Error, CustomStringConvertible {
             return """
                 The description is \(count) characters; the portal accepts \(max). Trim it by \
                 \(count - max) — the portal would otherwise truncate it without saying so.
+                """
+        case let .tooManyPhotos(count, max):
+            return """
+                This report has \(count) photographs; Na Minha Rua LX takes \(max). Remove \
+                \(count - max) — the portal would otherwise drop them without saying which.
                 """
         case .confirmationDoesNotMatch:
             return """
@@ -123,6 +177,31 @@ public struct PreparedReport: Sendable, Identifiable {
             out.append("No photo attached. A photo is the evidence a council worker acts on.")
         }
         return out
+    }
+
+    /// The same resolved report carrying a different set of photographs.
+    ///
+    /// **A new `id`, and that is the point.** Adding or removing evidence
+    /// changes what is being filed, so any `ReviewConfirmation` taken against
+    /// the previous one is refused and the user has to look again — the same
+    /// rule that governs editing the text or dragging the pin.
+    ///
+    /// What it deliberately does *not* do is resolve anything. The pin has not
+    /// moved, so the address, the freguesia and the nearby reports are all
+    /// still the answers this client already has; re-preparing would spend a
+    /// request at a municipal server to be told the same thing, and would drop
+    /// the resolved address on the floor if that request happened to fail.
+    public func with(photos: [Photo]) throws -> PreparedReport {
+        guard photos.count <= Photo.maxPerReport else {
+            throw SubmitError.tooManyPhotos(count: photos.count, max: Photo.maxPerReport)
+        }
+        return PreparedReport(
+            obj: obj,
+            type: type,
+            photos: photos,
+            location: location,
+            possibleDuplicates: possibleDuplicates
+        )
     }
 
     /// The exact bytes of the `obj` part, pretty-printed for a dry run.
@@ -201,6 +280,12 @@ public struct Submitter: Sendable {
         guard text.count <= Self.maxDescription else {
             throw SubmitError.descriptionTooLong(count: text.count, max: Self.maxDescription)
         }
+        // Caught here rather than at submit, so a report that cannot be filed
+        // says so on the screen where the photographs are still removable —
+        // not after somebody has read the Portuguese and tapped the gate.
+        guard photos.count <= Photo.maxPerReport else {
+            throw SubmitError.tooManyPhotos(count: photos.count, max: Photo.maxPerReport)
+        }
 
         let location = try await Geo.resolve(client, at: coordinate, tipoId: type.id)
 
@@ -267,6 +352,17 @@ public struct Submitter: Sendable {
         }
         body.finish()
 
+        // Sizes, counts and the type id — nothing here says who or where. This
+        // is the line that explains a refused submission after the fact, and a
+        // refused submission is the one failure nobody can afford to reproduce.
+        let sizes = report.photos.map(\.byteCount).map(String.init).joined(separator: ",")
+        Log.submit.notice(
+            """
+            \(mode == .live ? "live" : "dry-run", privacy: .public) tipo \
+            \(report.type.id, privacy: .public) · \(report.photos.count, privacy: .public) photo(s) \
+            [\(sizes, privacy: .public) B] · multipart \(body.data.count, privacy: .public) B
+            """)
+
         guard mode == .live else {
             return .dryRun(
                 payload: try report.payloadJSON(),
@@ -283,8 +379,12 @@ public struct Submitter: Sendable {
             headers: ["Origin": Portal.origin]
         )
         guard result.id > 0, !result.numero.isEmpty else {
+            Log.submit.error("filed but the answer had no occurrence number")
             throw SubmitError.unexpectedResult(String(describing: result))
         }
+        // The occurrence number identifies a reporter and a place, so it is the
+        // one thing about a success that stays private.
+        Log.submit.notice("filed as \(result.numero)")
         return .filed(result)
     }
 

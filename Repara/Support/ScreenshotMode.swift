@@ -210,12 +210,12 @@
 
             switch scene {
             case "capture":
-                model.accept(image: examplePhoto())
+                await model.accept(image: examplePhoto())
                 model.pin = Projection.reference.wgs84
                 model.userText = "Sacos de lixo abandonados junto aos contentores, há vários dias."
 
             case "drafting":
-                model.accept(image: examplePhoto())
+                await model.accept(image: examplePhoto())
                 model.pin = Projection.reference.wgs84
                 model.stage = .drafting
 
@@ -247,7 +247,7 @@
         /// union of both with the (stubbed) model.
         @MainActor
         private static func stageReview(_ model: AppModel, scene: String) async {
-            model.accept(image: examplePhoto())
+            await model.accept(image: examplePhoto())
             model.pin = Projection.reference.wgs84
             model.stage = .review
 
