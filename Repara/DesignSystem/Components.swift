@@ -268,6 +268,42 @@ struct CardGroup<Content: View>: View {
     }
 }
 
+/// One labelled value from the council's record — "Freguesia · Santa Maria
+/// Maior".
+///
+/// **The two halves take different types on purpose, and it is a localisation
+/// rule rather than a stylistic one.** The name is always this app's copy, so it
+/// is a `LocalizedStringKey` and translates; the value is always something the
+/// portal said, so it is a `String` and takes `Text`'s verbatim overload. A
+/// single `String` for both would have quietly shipped every label in English.
+///
+/// Shared by `OccurrenceSheet` and `MyReportDetailView`, which print the same
+/// kinds of fact about somebody else's report and your own.
+struct FactRow: View {
+    let name: LocalizedStringKey
+    let value: String
+
+    init(_ name: LocalizedStringKey, _ value: String) {
+        self.name = name
+        self.value = value
+    }
+
+    var body: some View {
+        HStack(alignment: .firstTextBaseline, spacing: 12) {
+            Text(name)
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+            Spacer(minLength: 12)
+            Text(value)
+                .font(.subheadline)
+                .multilineTextAlignment(.trailing)
+                .textSelection(.enabled)
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 12)
+    }
+}
+
 struct RowDivider: View {
     var body: some View {
         Rectangle()

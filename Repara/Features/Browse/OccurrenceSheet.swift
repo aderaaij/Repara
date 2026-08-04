@@ -34,11 +34,8 @@ struct OccurrenceSheet: View {
     /// wording distinguishes them as fast as seeing it.
     var comparedTo: LatLng? = nil
 
-    @Environment(AppModel.self) private var model
     @Environment(\.dismiss) private var dismiss
     @Environment(\.locale) private var locale
-
-    @State private var photos = PhotoLoad.idle
 
     private var isOpen: Bool { !report.isResolved }
 
@@ -58,7 +55,7 @@ struct OccurrenceSheet: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 14) {
                     header
-                    photoStrip
+                    ReportPhotos(occurrence: report.id)
                     if let text = description { descriptionCard(text) }
                     facts
                     map
@@ -67,7 +64,6 @@ struct OccurrenceSheet: View {
                 .padding(.horizontal, 16)
                 .padding(.vertical, 12)
             }
-            .task { await loadPhotos() }
             .background(Repara.canvas)
             .navigationTitle(report.numero)
             .navigationBarTitleDisplayMode(.inline)
@@ -167,102 +163,6 @@ struct OccurrenceSheet: View {
         }
     }
 
-    // MARK: Photographs
-
-    /// The council's photographs of this report, fetched when the sheet opens
-    /// and never before: one report opened is one request, and a list of eighty
-    /// nine would otherwise be eighty-nine.
-    ///
-    /// The four states are kept apart for the reason every other check in this
-    /// app keeps them apart — "no photograph on this report" and "we could not
-    /// ask" are different facts, and the second must not render as the first.
-    enum PhotoLoad {
-        case idle
-        case loading
-        case loaded([Data])
-        case failed(String)
-    }
-
-    @ViewBuilder private var photoStrip: some View {
-        switch photos {
-        case .idle:
-            EmptyView()
-
-        case .loading:
-            HStack(spacing: 9) {
-                ProgressView().controlSize(.small)
-                Text("Looking for photographs…")
-                    .font(.footnote)
-                    .foregroundStyle(.secondary)
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(.horizontal, 4)
-
-        case let .loaded(images) where images.isEmpty:
-            Text("No photograph on this report.")
-                .reparaFootnote()
-
-        case let .loaded(images):
-            ScrollView(.horizontal) {
-                HStack(spacing: 10) {
-                    ForEach(Array(images.enumerated()), id: \.offset) { _, data in
-                        if let image = UIImage(data: data) {
-                            Image(uiImage: image)
-                                .resizable()
-                                .scaledToFill()
-                                .frame(width: 240, height: 180)
-                                .clipShape(.rect(cornerRadius: Repara.Radius.card, style: .continuous))
-                        }
-                    }
-                }
-                .padding(.horizontal, 4)
-            }
-            .scrollIndicators(.hidden)
-            .frame(height: 180)
-
-        case let .failed(why):
-            HStack(alignment: .firstTextBaseline, spacing: 8) {
-                Text("Could not load the photographs — \(why)")
-                    .font(.footnote)
-                    .foregroundStyle(.secondary)
-                Button("Try again") { Task { await loadPhotos(force: true) } }
-                    .font(.footnote.weight(.semibold))
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(.horizontal, 4)
-        }
-    }
-
-    /// At most `maxPhotos` images. The portal's own form takes three, so a
-    /// report with more than a handful means the shape is not what we think it
-    /// is, and downloading all of it would be a lot of somebody's data for a
-    /// guess.
-    private func loadPhotos(force: Bool = false) async {
-        if case .loaded = photos, !force { return }
-        if case .loading = photos { return }
-        photos = .loading
-        do {
-            let urls = try await Photos.urls(model.client, occurrence: report.id)
-            var images: [Data] = []
-            for url in urls.prefix(Self.maxPhotos) {
-                images.append(try await Photos.image(model.client, at: url))
-            }
-            photos = .loaded(images)
-        } catch {
-            photos = .failed(Self.describe(error))
-        }
-    }
-
-    private static let maxPhotos = 4
-
-    private static func describe(_ error: any Error) -> String {
-        switch error {
-        case let error as PortalError:
-            return error.message(in: AppLanguage.selected.locale)
-        default: return error.localizedDescription
-        }
-    }
-
     // MARK: Description
 
     private var description: String? {
@@ -298,22 +198,22 @@ struct OccurrenceSheet: View {
                 // would repeat it from a different origin — two numbers for one
                 // fact, which is how a screen starts to look untrustworthy.
                 if comparedTo == nil {
-                    fact("Distance", distancePhrase(report.distance, in: locale))
+                    FactRow("Distance", distancePhrase(report.distance, in: locale))
                 }
                 if !report.freguesia.isEmpty {
                     if comparedTo == nil { RowDivider() }
-                    fact("Freguesia", report.freguesia)
+                    FactRow("Freguesia", report.freguesia)
                 }
                 if !report.area.isEmpty {
                     RowDivider()
-                    fact("Department", report.area)
+                    FactRow("Department", report.area)
                 }
                 if let reference = reference {
                     RowDivider()
-                    fact("Reference", reference)
+                    FactRow("Reference", reference)
                 }
                 RowDivider()
-                fact("Occurrence", report.numero)
+                FactRow("Occurrence", report.numero)
             }
         }
     }
@@ -321,24 +221,6 @@ struct OccurrenceSheet: View {
     private var reference: String? {
         let text = report.referencia?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
         return text.isEmpty ? nil : text
-    }
-
-    /// The name is always copy and the value is always something the portal
-    /// said, so the two take different types and cannot be confused for one
-    /// another: `LocalizedStringKey` translates, `String` is printed as it came.
-    private func fact(_ name: LocalizedStringKey, _ value: String) -> some View {
-        HStack(alignment: .firstTextBaseline, spacing: 12) {
-            Text(name)
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
-            Spacer(minLength: 12)
-            Text(value)
-                .font(.subheadline)
-                .multilineTextAlignment(.trailing)
-                .textSelection(.enabled)
-        }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 12)
     }
 
     // MARK: Map

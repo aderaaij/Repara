@@ -101,7 +101,7 @@
             "capture-empty", "capture", "drafting",
             "review", "review-booked", "review-booked-far", "review-checking", "review-failed",
             "type-picker", "dry-run", "filed",
-            "reports-mine", "occurrence-compare",
+            "reports-mine", "my-report", "occurrence-compare",
             "browse-empty", "browse-results", "browse-nothing",
             "browse-filtered",
             "settings", "settings-gemini",
@@ -111,6 +111,11 @@
         /// reach it through the app. `Fixtures` stays private — a screenshot
         /// harness's synthetic data has no business being visible to the app.
         static var bookedCollectionFixture: NearByOccurrence { Fixtures.bookedCollection }
+
+        /// The row `my-report` is opened on — the first of the three the stubbed
+        /// `/ocorrencias/my` answers with, decoded through the real path so the
+        /// screenshot shows what the decoder actually keeps.
+        static var myReportFixture: MyOccurrence { Fixtures.myReport }
 
         // MARK: The stubbed portal
 
@@ -478,6 +483,10 @@
             try! JSONDecoder().decode(Utilizador.self, from: utilizador)
         }
 
+        static var myReport: MyOccurrence {
+            try! JSONDecoder().decode([MyOccurrence].self, from: myReports)[0]
+        }
+
         static var submitResult: SubmitResult {
             try! JSONDecoder().decode(
                 SubmitResult.self,
@@ -538,21 +547,42 @@
             }
             """.utf8)
 
+        /// Carries the whole row the portal's own `my.html` binds — address,
+        /// department, freguesia, who has it and when it was filed — because
+        /// those are what the report screen behind a row is made of, and a
+        /// fixture with only the five fields the list uses would photograph an
+        /// empty one.
+        ///
+        /// `requerente` and `email` ride along on the first row for the same
+        /// reason the `nearBy` fixtures carry them: the decoder dropping them is
+        /// only demonstrated by a run where they were offered.
         static let myReports = Data(
             """
             [
               {
                 "id": 1000800,
                 "numero": "OCO/00800/2000",
-                "descricao": "Sacos de lixo abandonados junto aos contentores.",
+                "descricao": "Sacos de lixo abandonados junto aos contentores, há vários dias.",
                 "tipo": "Sacos ou outros lixos abandonados",
-                "naminharua_estado": "Em curso"
+                "area": "Higiene Urbana",
+                "local": "Rua Exemplo 1, 1000-000 Lisboa",
+                "freguesia": "Freguesia Exemplo",
+                "responsavel": "Departamento Exemplo",
+                "data_criacao": "12-03-2000",
+                "naminharua_estado": "Em curso",
+                "requerente": "Utilizador Exemplo",
+                "email": "utilizador@example.invalid"
               },
               {
                 "id": 1000801,
                 "numero": "OCO/00801/2000",
                 "descricao": "Passeio levantado junto à paragem, com risco de queda.",
                 "tipo": "Pavimento danificado",
+                "area": "Passeios e Acessibilidades",
+                "local": "Rua Exemplo 14, 1000-000 Lisboa",
+                "freguesia": "Freguesia Exemplo",
+                "responsavel": "Departamento Exemplo",
+                "data_criacao": "04-11-2000",
                 "naminharua_estado": "Concluído"
               },
               {
@@ -560,6 +590,10 @@
                 "numero": "OCO/00802/2000",
                 "descricao": "Candeeiro apagado há mais de uma semana.",
                 "tipo": "Iluminação pública avariada",
+                "area": "Iluminação Pública",
+                "local": "Rua Exemplo 9, 1000-000 Lisboa",
+                "freguesia": "Freguesia Exemplo",
+                "data_criacao": "27-09-2000",
                 "naminharua_estado": "Concluído"
               }
             ]

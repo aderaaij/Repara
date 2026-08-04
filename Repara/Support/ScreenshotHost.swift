@@ -77,6 +77,14 @@
             case "reports-mine":
                 NavigationStack { ReportsView(initialTab: .mine) }
 
+            // The screen behind a row on the one above. Presented directly
+            // because a screenshot cannot tap, and inside a `NavigationStack`
+            // because that is what it is pushed onto in the app.
+            case "my-report":
+                NavigationStack {
+                    MyReportDetailView(report: ScreenshotMode.myReportFixture)
+                }
+
             case "browse-empty", "browse-results", "browse-nothing", "browse-filtered":
                 NavigationStack { ReportsView(initialTab: .nearby) }
 

@@ -47,6 +47,7 @@ SCENES=(
   "dry-run:14-dry-run:0"
   "filed:15-filed:0"
   "reports-mine:16-my-reports:0"
+  "my-report:16a-my-report:0"
   "occurrence-compare:16b-occurrence-compare:0"
   "browse-empty:17-browse-before-searching:0"
   "browse-results:18-browse-results:0"

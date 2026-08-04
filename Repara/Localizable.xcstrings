@@ -1191,6 +1191,16 @@
         }
       }
     },
+    "Handled by": {
+      "localizations": {
+        "pt-PT": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Responsável"
+          }
+        }
+      }
+    },
     "I already have one": {
       "localizations": {
         "pt-PT": {
@@ -2100,6 +2110,16 @@
         }
       }
     },
+    "The council can add comments to a report and reopen a closed one. Repara does not read those yet — naminharualx.cm-lisboa.pt does.": {
+      "localizations": {
+        "pt-PT": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A câmara pode acrescentar comentários a uma ocorrência e reabrir uma que esteja concluída. A Repara ainda não os lê — o naminharualx.cm-lisboa.pt lê."
+          }
+        }
+      }
+    },
     "The council gets the full-resolution original. You place the pin on the next screen.": {
       "localizations": {
         "pt-PT": {
@@ -2306,6 +2326,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "O que pode comunicar"
+          }
+        }
+      }
+    },
+    "What you reported": {
+      "localizations": {
+        "pt-PT": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O que comunicou"
           }
         }
       }

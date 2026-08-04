@@ -452,7 +452,27 @@ public struct SubmitResult: Decodable, Sendable, Equatable {
     public let numero: String
 }
 
-/// A row from `/ocorrencias/my`.
+/// A row from `/ocorrencias/my` — one of **your own** reports.
+///
+/// Wider than `NearByOccurrence`, and the difference is whose report it is.
+/// That type is the privacy boundary because it describes a stranger's report to
+/// a passer-by; this one describes your report back to you, so the address and
+/// the officer handling it are facts you are entitled to and the portal already
+/// shows you. What stays out either way is **identity** — `requerente`, `email`,
+/// `criador_id`, `logedUser` have no storage here either, because a row about
+/// you does not need to carry a copy of you. `MyReportTests` pins that.
+///
+/// **The extra fields are not guesses.** The portal's own `my.html` binds
+/// exactly `numero`, `area`, `tipo`, `descricao`, `local`, `freguesia`,
+/// `naminharua_estado`, `responsavel` and `data_criacao` off each row of this
+/// endpoint's answer. They are nonetheless all optional and all degrade to
+/// empty: the captured session's only call to this path was the portal's own
+/// `/my/?page=1`, which 404s on the trailing slash, so nobody has seen the
+/// response body. A field that never arrives leaves its row off the screen
+/// rather than printing a blank one.
+///
+/// Nothing here is ever sent to a model provider. The two model calls read
+/// `NearByOccurrence.promptSummary` and nothing else.
 public struct MyOccurrence: Decodable, Sendable, Hashable, Identifiable {
     public let id: Int
     public let numero: String
@@ -460,9 +480,41 @@ public struct MyOccurrence: Decodable, Sendable, Hashable, Identifiable {
     public let tipo: String
     public let estado: String
 
+    /// The council department the type routes to — "Higiene Urbana". The same
+    /// value `NearByOccurrence.area` carries.
+    public let area: String
+
+    /// Where the problem is, as the council recorded it.
+    ///
+    /// **The one field whose treatment differs from `NearByOccurrence`, and
+    /// deliberately.** There it is dropped, because the address on a stranger's
+    /// report is a fact about a household. Here it is the address you yourself
+    /// placed a pin on, shown only to the account that filed it — and it is the
+    /// fastest way to tell two of your own reports apart, which is the whole
+    /// reason for opening one.
+    public let local: String?
+
+    public let freguesia: String
+
+    /// Whoever at the council the report is assigned to — the "Responsável"
+    /// column on the portal's own list. Shown, not translated, and absent when
+    /// nothing has been assigned yet.
+    public let responsavel: String?
+
+    /// When it was filed, in the portal's own formatting.
+    ///
+    /// Kept as text and printed verbatim rather than parsed into a `Date`: the
+    /// format is one nobody has captured, and a `DateFormatter` guessing wrong
+    /// turns a correct date into a confident wrong one. `filedYear` is the
+    /// fallback, and it reads the report number rather than this.
+    public let dataCriacao: String?
+
+    /// Deliberately NOT `requerente`, `email`, `criador_id` or `logedUser` —
+    /// see the note above.
     enum CodingKeys: String, CodingKey {
-        case id, numero, descricao, tipo, estado
+        case id, numero, descricao, tipo, estado, area, local, freguesia, responsavel
         case naminharuaEstado = "naminharua_estado"
+        case dataCriacao = "data_criacao"
     }
 
     public init(from decoder: any Decoder) throws {
@@ -474,6 +526,35 @@ public struct MyOccurrence: Decodable, Sendable, Hashable, Identifiable {
         estado =
             try c.decodeIfPresent(String.self, forKey: .naminharuaEstado)
             ?? c.decodeIfPresent(String.self, forKey: .estado) ?? ""
+        area = try c.decodeIfPresent(String.self, forKey: .area) ?? ""
+        local = try c.decodeLenientStringIfPresent(.local)
+        freguesia = try c.decodeLenientStringIfPresent(.freguesia) ?? ""
+        responsavel = try c.decodeIfPresent(String.self, forKey: .responsavel)
+        // Lenient because the portal sends dates as strings on some endpoints
+        // and as epoch numbers on others, and a report that would not open
+        // because of the date on it is absurd.
+        dataCriacao = try c.decodeLenientStringIfPresent(.dataCriacao)
+    }
+
+    /// True when the council's status word reads as already dealt with.
+    ///
+    /// The same wording match `NearByOccurrence.isResolved` makes, and for the
+    /// same reason: the endpoints disagree on the field name and agree on the
+    /// vocabulary. Note it is narrower than the app's `statusReadsAsOpen`, which
+    /// also treats "Concluído" and "Anulado" as finished for the purpose of
+    /// picking a colour.
+    public var isResolved: Bool {
+        estado.range(of: "resolvid", options: .caseInsensitive) != nil
+    }
+
+    /// The year on the report number — `OCO/<serial>/<year>`. See
+    /// `NearByOccurrence.filedYear` for why the number is read rather than a
+    /// date field, and why this is nil rather than a guess.
+    public var filedYear: Int? {
+        guard let tail = numero.split(separator: "/").last, let year = Int(tail),
+            (2000...2100).contains(year)
+        else { return nil }
+        return year
     }
 }
 
