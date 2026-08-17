@@ -42,8 +42,23 @@ struct ReportPhotos: View {
         case failed(String)
     }
 
+    /// Which photograph the viewer was opened on. A position in the strip, so
+    /// the sheet and the thumbnail cannot disagree about which one was tapped.
+    @State private var opened: Opened?
+
+    private struct Opened: Identifiable {
+        let id: Int
+    }
+
     var body: some View {
-        content.task { await load() }
+        content
+            .task { await load() }
+            .fullScreenCover(item: $opened) { opened in
+                if case let .loaded(images) = state {
+                    PhotoViewer(
+                        photos: images.compactMap { UIImage(data: $0) }, index: opened.id)
+                }
+            }
     }
 
     @ViewBuilder private var content: some View {
@@ -63,23 +78,10 @@ struct ReportPhotos: View {
                 .reparaFootnote()
 
         case let .loaded(images):
-            ScrollView(.horizontal) {
-                HStack(spacing: 10) {
-                    ForEach(Array(images.enumerated()), id: \.offset) { _, data in
-                        if let image = UIImage(data: data) {
-                            Image(uiImage: image)
-                                .resizable()
-                                .scaledToFill()
-                                .frame(width: 240, height: 180)
-                                .clipShape(
-                                    .rect(cornerRadius: Repara.Radius.card, style: .continuous))
-                        }
-                    }
-                }
-                .padding(.horizontal, 4)
-            }
-            .scrollIndicators(.hidden)
-            .frame(height: 180)
+            // Decoded here rather than held decoded in `state`, so that "the
+            // portal listed no photograph" stays a fact about the answer and not
+            // about whether the bytes turned out to be readable.
+            strip(images.compactMap { UIImage(data: $0) })
 
         case let .failed(why):
             HStack(alignment: .firstTextBaseline, spacing: 8) {
@@ -92,6 +94,57 @@ struct ReportPhotos: View {
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(.horizontal, 4)
         }
+    }
+
+    // MARK: The strip
+
+    /// The photographs, each at its own shape and each a way into `PhotoViewer`.
+    ///
+    /// **The height is fixed and the width follows the photograph**, rather than
+    /// both being fixed. A 240×180 window with `scaledToFill` behind it is a
+    /// centre crop, and a phone photograph is portrait far more often than not —
+    /// so nearly every one of these was being shown as a landscape band cut out
+    /// of the middle of a portrait shot, which is the part of a fly-tipping
+    /// photograph least likely to contain the fly-tipping.
+    ///
+    /// The clamp is there for the panorama and the receipt-shaped screenshot.
+    /// It is set wide enough that **nothing a phone takes is cropped**: 9:16
+    /// portrait lands on 101, 3:4 on 135, square on 180, 4:3 on 240 and 16:9 on
+    /// 320, and all five are inside it.
+    private func strip(_ photos: [UIImage]) -> some View {
+        ScrollView(.horizontal) {
+            HStack(spacing: 10) {
+                ForEach(Array(photos.enumerated()), id: \.offset) { position, image in
+                    Button {
+                        opened = Opened(id: position)
+                    } label: {
+                        Image(uiImage: image)
+                            .resizable()
+                            .scaledToFill()
+                            .frame(width: Self.width(for: image), height: Self.stripHeight)
+                            .clipShape(
+                                .rect(cornerRadius: Repara.Radius.card, style: .continuous))
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel(Text("Photo \(position + 1) of \(photos.count)"))
+                    .accessibilityHint(Text("Opens it full screen."))
+                }
+            }
+            .padding(.horizontal, 4)
+        }
+        .scrollIndicators(.hidden)
+        .frame(height: Self.stripHeight)
+    }
+
+    private static let stripHeight: CGFloat = 180
+
+    /// `UIImage.size` is orientation-corrected — a portrait photograph carrying
+    /// an EXIF rotation reports itself as portrait — so this is the shape the
+    /// photograph will actually be drawn at.
+    private static func width(for image: UIImage) -> CGFloat {
+        let size = image.size
+        guard size.width > 0, size.height > 0 else { return stripHeight }
+        return min(max(stripHeight * (size.width / size.height), 100), 320)
     }
 
     /// At most `maxPhotos` images. The portal's own form takes three, so a

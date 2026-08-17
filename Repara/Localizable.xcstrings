@@ -902,6 +902,16 @@
         }
       }
     },
+    "Close": {
+      "localizations": {
+        "pt-PT": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fechar"
+          }
+        }
+      }
+    },
     "Context for this spot": {
       "localizations": {
         "pt-PT": {
@@ -1769,12 +1779,48 @@
         }
       }
     },
+    "Opens it full screen.": {
+      "localizations": {
+        "pt-PT": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Abre-a em ecrã inteiro."
+          }
+        }
+      }
+    },
     "Password": {
       "localizations": {
         "pt-PT": {
           "stringUnit": {
             "state": "translated",
             "value": "Palavra-passe"
+          }
+        }
+      }
+    },
+    "Photo %lld of %lld": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Photo %1$lld of %2$lld"
+          }
+        },
+        "pt-PT": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fotografia %1$lld de %2$lld"
+          }
+        }
+      }
+    },
+    "Photograph on this report": {
+      "localizations": {
+        "pt-PT": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fotografia desta ocorrência"
           }
         }
       }
