@@ -16,7 +16,8 @@ import SwiftUI
 /// `CodingKey` on `NearByOccurrence`, so this screen could not show them if it
 /// wanted to. That is also why there is a map here and no address: where the
 /// problem is, is a fact about the street; the address on the record is a fact
-/// about a household.
+/// about a household — and `local` is one of the two the portal still sends in
+/// the clear.
 ///
 /// Costs the council nothing. Every value here came back with the search that
 /// listed it, and opening this spends no request at all.

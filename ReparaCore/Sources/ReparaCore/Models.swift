@@ -174,12 +174,25 @@ public struct GeoAttributes: Decodable, Sendable {
 
 /// A nearby occurrence, reduced to the fields duplicate detection actually needs.
 ///
-/// **This type is the privacy boundary.** The raw server entries carry the full
-/// name and email of whoever filed each nearby report. None of that is needed
-/// for anything this app does, so it is dropped here — by decoding only the
-/// listed keys, which makes retaining the rest structurally impossible rather
-/// than merely discouraged. Nothing upstream ever holds the raw shape, so there
-/// is no raw shape to leak into a log, a cache, or a model prompt.
+/// **This type is the privacy boundary.** The raw server entries carry 34
+/// fields; everything this app has no use for is dropped here — by decoding only
+/// the listed keys, which makes retaining the rest structurally impossible
+/// rather than merely discouraged. Nothing upstream ever holds the raw shape, so
+/// there is no raw shape to leak into a log, a cache, or a model prompt.
+///
+/// **What the server sends has changed, and the boundary is drawn for the worse
+/// version.** It used to hand over the filer's full name and email in the clear.
+/// Checked live on 2026-08-27 — a read-only `getGeoAttributes` at two points, 14
+/// rows, 10 distinct filers — `requerente` and `email` now arrive as `****`, and
+/// `logedUser`, long listed here as reporter identity, is the **querying account
+/// echoed back onto every row**, never the filer's. Two are still real:
+/// `criador_id`, a per-filer account id that links one person's reports across
+/// the city, and `local`, the street address on a stranger's report, carrying a
+/// house number on most rows.
+///
+/// So two of the five are now the council's fix rather than ours — and a fix on
+/// their side can be reverted without telling anyone. Decoding none of them
+/// costs nothing and does not depend on their masking holding.
 ///
 /// See `PrivacyTests`, which asserts that no `@` survives.
 public struct NearByOccurrence: Decodable, Sendable, Hashable, Identifiable {
@@ -203,7 +216,9 @@ public struct NearByOccurrence: Decodable, Sendable, Hashable, Identifiable {
     public var coordinate: LatLng { Projection.inverse(point) }
 
     /// Deliberately NOT `requerente`, `email`, `criador_id`, `logedUser` or
-    /// `local`. Adding a key here re-opens the leak; do not.
+    /// `local`. Adding a key here re-opens the leak; do not. The server masks
+    /// two of those five today — see the note on the type, and do not read that
+    /// as permission to decode them.
     enum CodingKeys: String, CodingKey {
         case id
         case numero

@@ -3,9 +3,17 @@ import Testing
 
 @testable import ReparaCore
 
-/// `getGeoAttributes` returns a `nearBy` array carrying the **full name and
-/// email of everyone who filed each nearby report**. The app needs none of it:
-/// duplicate detection wants a type, a description, a status and a position.
+/// `getGeoAttributes` returns a `nearBy` array carrying far more about each
+/// neighbouring report than this app has any use for: duplicate detection wants
+/// a type, a description, a status and a position.
+///
+/// **The fixtures are deliberately worse than the live server.** They carry
+/// `requerente` and `email` in the clear, which is what the portal used to send.
+/// As of 2026-08-27 it masks both to `****`; `criador_id` and `local` are still
+/// real. Do not "correct" the fixtures to match what comes back today — they
+/// encode the worst shape this endpoint has been observed to return, and a
+/// server-side fix can be reverted without telling anybody. See the note on
+/// `NearByOccurrence`.
 ///
 /// These tests assert the identifying fields do not survive parsing. The bar is
 /// deliberately blunt — no `@` anywhere in the parsed result — because a subtler
