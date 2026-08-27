@@ -197,8 +197,10 @@ overridable free text — they go stale faster than this app ships.
   server-side `fallbacks` is enabled so a spurious refusal re-runs rather than
   dead-ending someone standing in the street; the others have no equivalent.
 - **Two photo sizes, two purposes.** The model gets a copy downscaled to
-  1568 px; the council gets the full-resolution original, because that is the
-  evidence a worker acts on. Do not conflate them.
+  1568 px; the council gets a larger one, capped at 2048 px and held under
+  `Photo.maxBytes`, because that is the evidence a worker acts on. Do not
+  conflate them. A report carries up to three photographs — the portal's own
+  limit — and only the first is ever sent to a model.
 - The description must be **Portuguese** — a council worker reads it. You may
   speak English at the app; Review shows the Portuguese that will actually be
   sent, capped at 2000 characters.

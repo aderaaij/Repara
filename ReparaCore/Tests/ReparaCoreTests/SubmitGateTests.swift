@@ -154,6 +154,54 @@ struct SubmitGateTests {
         #expect(multipartBytes > objBytes + photoBytes)
     }
 
+    // MARK: How many photographs, and how big
+
+    /// The portal's own form counts to three and then swaps its button for a
+    /// dead one reading "Só é possivel adicionar 3 fotos!". That count is
+    /// client-side, so a fourth part would likely be accepted and then dropped —
+    /// losing one of the photographs somebody walked out to take, silently.
+    /// Refusing to prepare is the loud version of the same limit.
+    @Test("a fourth photograph is refused rather than quietly dropped")
+    func refusesAFourthPhoto() async throws {
+        let (client, _) = try Fixture.client(returning: "geo-attributes-building")
+        let photo = Photo(jpeg: Data([0xFF, 0xD8]), filename: "foto.jpg")
+
+        await #expect(throws: SubmitError.self) {
+            _ = try await Submitter(client: client).prepare(
+                type: .litter,
+                at: Projection.reference.wgs84,
+                descricao: "Sacos de lixo abandonados no passeio.",
+                photos: Array(repeating: photo, count: Photo.maxPerReport + 1)
+            )
+        }
+    }
+
+    @Test("three photographs are fine — that is what the portal's own form takes")
+    func acceptsThreePhotos() async throws {
+        let (client, _) = try Fixture.client(returning: "geo-attributes-building")
+        let photo = Photo(jpeg: Data([0xFF, 0xD8]), filename: "foto.jpg")
+
+        let report = try await Submitter(client: client).prepare(
+            type: .litter,
+            at: Projection.reference.wgs84,
+            descricao: "Sacos de lixo abandonados no passeio.",
+            photos: Array(repeating: photo, count: Photo.maxPerReport)
+        )
+        #expect(report.photos.count == 3)
+    }
+
+    /// The budget exists because a ~6 MB photograph came back as a 500 whose
+    /// body mentioned size, while a captured browser submission of 4 844 588 B
+    /// was accepted. The exact ceiling is unknown and cannot be probed — every
+    /// attempt that succeeds dispatches a council worker — so what is pinned
+    /// here is that a full report stays **under the one size known to work**,
+    /// not that it stays under a guessed limit.
+    @Test("a full report of three photographs fits inside a request known to work")
+    func fullReportStaysUnderTheVerifiedSize() {
+        let verifiedAcceptedRequest = 4_844_588
+        #expect(Photo.maxBytes * Photo.maxPerReport < verifiedAcceptedRequest)
+    }
+
     // MARK: Warnings
 
     @Test("a report with no photo says so")

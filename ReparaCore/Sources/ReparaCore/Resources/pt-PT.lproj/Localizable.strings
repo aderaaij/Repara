@@ -21,7 +21,8 @@
 
 "submit.empty-description" = "Descreva o que está errado, para que a câmara possa actuar.";
 "submit.description-too-long" = "A descrição tem %1$lld caracteres; o portal aceita %2$lld. Corte %3$lld — caso contrário o portal trunca-a sem avisar.";
-"submit.confirmation-does-not-match" = "Esta ocorrência mudou depois de ter sido revista. Verifique-a outra vez antes de registar — a confirmação aplica-se exactamente à ocorrência que estava no ecrã.";
+"submit.too-many-photos" = "Esta ocorrência tem %1$lld fotografias; o Na Minha Rua LX aceita %2$lld. Remova %3$lld — caso contrário o portal descarta-as sem dizer quais.";
+"submit.confirmation-does-not-match" ="Esta ocorrência mudou depois de ter sido revista. Verifique-a outra vez antes de registar — a confirmação aplica-se exactamente à ocorrência que estava no ecrã.";
 "submit.unexpected-result" = "O portal devolveu algo inesperado: %@. A ocorrência pode ter sido registada ou não — verifique As minhas ocorrências antes de tentar outra vez.";
 
 "projection.outside-lisbon" = "Essa localização está fora do município de Lisboa, que o Na Minha Rua LX não abrange.";

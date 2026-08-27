@@ -28,7 +28,7 @@ struct CaptureView: View {
     @Environment(\.locale) private var locale
     @State private var showingCamera = false
     @State private var noteExpanded = false
-    @State private var libraryItem: PhotosPickerItem?
+    @State private var libraryItems: [PhotosPickerItem] = []
     @FocusState private var editingNote: Bool
 
     var body: some View {
@@ -44,18 +44,24 @@ struct CaptureView: View {
         // one-handed rather than at the far corner from a thumb.
         .toolbar(.hidden, for: .navigationBar)
         .fullScreenCover(isPresented: $showingCamera) {
-            CameraPicker { image in model.accept(image: image) }
+            CameraPicker { image in Task { await model.accept(image: image) } }
                 .ignoresSafeArea()
         }
-        .onChange(of: libraryItem) { _, item in
-            guard let item else { return }
+        .onChange(of: libraryItems) { _, items in
+            guard !items.isEmpty else { return }
             Task {
-                if let data = try? await item.loadTransferable(type: Data.self),
-                    let image = UIImage(data: data)
-                {
-                    model.accept(image: image)
+                // Loaded in the order they were chosen, because the first one
+                // is the one the drafting model reads.
+                var images: [UIImage] = []
+                for item in items {
+                    if let data = try? await item.loadTransferable(type: Data.self),
+                        let image = UIImage(data: data)
+                    {
+                        images.append(image)
+                    }
                 }
-                libraryItem = nil
+                await model.accept(images: images)
+                libraryItems = []
             }
         }
     }
@@ -76,7 +82,7 @@ struct CaptureView: View {
     /// the frame go dark and full-bleed — at which point it is a photo
     /// container, and cannot pretend to be anything else.
     @ViewBuilder private var frame: some View {
-        if let data = model.photo, let image = UIImage(data: data) {
+        if let data = model.photos.first?.council, let image = UIImage(data: data) {
             photoFrame(image)
         } else {
             placeholderFrame
@@ -109,7 +115,26 @@ struct CaptureView: View {
                 .allowsHitTesting(false)
         }
         .overlay(alignment: .top) { topControls(overPhoto: true) }
+        .overlay(alignment: .bottomTrailing) { photoCount }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+
+    /// Only when there is more than one, and only as a count.
+    ///
+    /// The frame shows the first photograph because that is the one the model
+    /// reads; the others are on the Review screen, where they can be looked at
+    /// and removed one by one. All this has to say here is that they exist.
+    @ViewBuilder private var photoCount: some View {
+        if model.photos.count > 1 {
+            Text("\(model.photos.count) photos")
+                .font(.footnote.weight(.semibold))
+                .foregroundStyle(.white)
+                .padding(.horizontal, 13)
+                .frame(height: 32)
+                .background(.black.opacity(0.45), in: .capsule)
+                .overlay { Capsule().strokeBorder(.white.opacity(0.28), lineWidth: 0.5) }
+                .padding(14)
+        }
     }
 
     /// Light, dashed and inert. It states what is missing; the buttons below are
@@ -126,7 +151,7 @@ struct CaptureView: View {
                     .font(.title3.weight(.semibold))
                 Text(
                     """
-                    The council gets the full-resolution original. You place the pin on the \
+                    Up to three, and you can add the others later. You place the pin on the \
                     next screen.
                     """
                 )
@@ -174,7 +199,7 @@ struct CaptureView: View {
             locationChip(overPhoto: overPhoto)
             Spacer(minLength: 8)
 
-            if model.photo == nil {
+            if model.photos.isEmpty {
                 Button { model.showingSettings = true } label: {
                     frameButton("gearshape", overPhoto: overPhoto)
                 }
@@ -183,7 +208,7 @@ struct CaptureView: View {
                 // With a photo in the frame, discarding it is the thing somebody
                 // reaches for. Settings is one screen further on, and this is
                 // the last chance to reject a blurred shot cheaply.
-                Button { model.photo = nil } label: {
+                Button { model.discardPhotos() } label: {
                     frameButton("xmark", overPhoto: overPhoto)
                 }
                 .buttonStyle(.plain)
@@ -270,7 +295,7 @@ struct CaptureView: View {
 
     private var controls: some View {
         VStack(spacing: 12) {
-            if model.photo == nil {
+            if model.photos.isEmpty {
                 shutterRow
             } else {
                 noteRow
@@ -303,6 +328,12 @@ struct CaptureView: View {
     /// bottom third, and the library one is not a lesser affordance — the
     /// simulator has no camera and plenty of problems get photographed before
     /// somebody thinks to report them.
+    ///
+    /// **Only the library one takes several at once.** The camera is one shot
+    /// and then the draft, because that is the path somebody walks outdoors
+    /// with one hand — and a picker already holding three photographs of the
+    /// same thing is not that path. The rest are added on the Review screen,
+    /// where there is time to look at them.
     private var shutterRow: some View {
         HStack(spacing: 14) {
             Button {
@@ -321,7 +352,11 @@ struct CaptureView: View {
             }
             .buttonStyle(.plain)
 
-            PhotosPicker(selection: $libraryItem, matching: .images) {
+            PhotosPicker(
+                selection: $libraryItems,
+                maxSelectionCount: Photo.maxPerReport,
+                matching: .images
+            ) {
                 Image(systemName: "photo.on.rectangle")
                     .font(.system(size: 22))
                     .foregroundStyle(Repara.ink)

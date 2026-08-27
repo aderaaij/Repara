@@ -455,6 +455,86 @@
         }
       }
     },
+    "%lld photos": {
+      "localizations": {
+        "en": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld photo"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld photos"
+                }
+              }
+            }
+          }
+        },
+        "pt-PT": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld fotografia"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld fotografias"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "%lld photos attached": {
+      "localizations": {
+        "en": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld photo attached"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld photos attached"
+                }
+              }
+            }
+          }
+        },
+        "pt-PT": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld fotografia anexada"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld fotografias anexadas"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "%lld types across %lld council areas. Several share wording and route to different desks, so the area is part of the answer.": {
       "localizations": {
         "en": {
@@ -482,6 +562,7 @@
       }
     },
     "1 photo attached": {
+      "extractionState": "stale",
       "localizations": {
         "pt-PT": {
           "stringUnit": {
@@ -601,6 +682,16 @@
         }
       }
     },
+    "Add a photo": {
+      "localizations": {
+        "pt-PT": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Adicionar fotografia"
+          }
+        }
+      }
+    },
     "Address": {
       "localizations": {
         "pt-PT": {
@@ -677,6 +768,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "A perguntar se já há uma recolha agendada aqui."
+          }
+        }
+      }
+    },
+    "Attach a photo": {
+      "localizations": {
+        "pt-PT": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Anexar fotografia"
           }
         }
       }
@@ -797,6 +898,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Limpar"
+          }
+        }
+      }
+    },
+    "Close": {
+      "localizations": {
+        "pt-PT": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fechar"
           }
         }
       }
@@ -1182,6 +1293,7 @@
       }
     },
     "Full resolution · %@": {
+      "extractionState": "stale",
       "localizations": {
         "pt-PT": {
           "stringUnit": {
@@ -1667,12 +1779,48 @@
         }
       }
     },
+    "Opens it full screen.": {
+      "localizations": {
+        "pt-PT": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Abre-a em ecrã inteiro."
+          }
+        }
+      }
+    },
     "Password": {
       "localizations": {
         "pt-PT": {
           "stringUnit": {
             "state": "translated",
             "value": "Palavra-passe"
+          }
+        }
+      }
+    },
+    "Photo %lld of %lld": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Photo %1$lld of %2$lld"
+          }
+        },
+        "pt-PT": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fotografia %1$lld de %2$lld"
+          }
+        }
+      }
+    },
+    "Photograph on this report": {
+      "localizations": {
+        "pt-PT": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fotografia desta ocorrência"
           }
         }
       }
@@ -1743,6 +1891,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Remover chave"
+          }
+        }
+      }
+    },
+    "Remove this photo": {
+      "localizations": {
+        "pt-PT": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Remover esta fotografia"
           }
         }
       }
@@ -2121,6 +2279,7 @@
       }
     },
     "The council gets the full-resolution original. You place the pin on the next screen.": {
+      "extractionState": "stale",
       "localizations": {
         "pt-PT": {
           "stringUnit": {
@@ -2286,6 +2445,26 @@
           "stringUnit": {
             "state": "translated",
             "value": "Cliente não oficial · Na Minha Rua LX"
+          }
+        }
+      }
+    },
+    "Up to three, and you can add the others later. You place the pin on the next screen.": {
+      "localizations": {
+        "pt-PT": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Até três, e pode adicionar as outras mais tarde. O marcador é colocado no ecrã seguinte."
+          }
+        }
+      }
+    },
+    "Up to three.": {
+      "localizations": {
+        "pt-PT": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Até três."
           }
         }
       }

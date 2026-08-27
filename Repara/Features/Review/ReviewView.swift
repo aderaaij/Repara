@@ -1,3 +1,4 @@
+import PhotosUI
 import ReparaCore
 import SwiftUI
 
@@ -41,6 +42,9 @@ struct ReviewView: View {
     @State private var showingConfirmation = false
     @State private var whereExpanded = false
     @State private var photoExpanded = false
+    /// Photos chosen from the library on this screen, cleared as soon as they
+    /// have been handed to the model.
+    @State private var addedItems: [PhotosPickerItem] = []
     @State private var hasReadBody = false
     /// The warned-about report being looked at, from either caution card.
     ///
@@ -77,6 +81,21 @@ struct ReviewView: View {
         // far apart they are — the question a caution card is actually asking.
         .sheet(item: $inspected) { report in
             OccurrenceSheet(report: report, comparedTo: model.pin)
+        }
+        .onChange(of: addedItems) { _, items in
+            guard !items.isEmpty else { return }
+            Task {
+                var images: [UIImage] = []
+                for item in items {
+                    if let data = try? await item.loadTransferable(type: Data.self),
+                        let image = UIImage(data: data)
+                    {
+                        images.append(image)
+                    }
+                }
+                await model.accept(images: images)
+                addedItems = []
+            }
         }
     }
 
@@ -515,14 +534,27 @@ struct ReviewView: View {
         }
     }
 
+    /// Reads `model.photos` rather than the prepared report's copy, so that
+    /// attaching one on this screen clears the warning at the moment it is
+    /// attached rather than whenever the report is next re-made.
     @ViewBuilder private var photoCaution: some View {
-        if model.prepared?.photos.isEmpty == true {
+        if model.photos.isEmpty {
             CautionCard(
                 .headsUp,
                 title: Text("No photo attached"),
                 message: Text("A photo is the evidence a council worker acts on."),
                 systemImage: "camera"
-            )
+            ) {
+                // The same shape as the street caution's "Open the map": the
+                // warning opens the row that answers it, rather than sending
+                // somebody back a screen to start the draft again.
+                Button("Attach a photo") {
+                    withAnimation(.snappy) { photoExpanded = true }
+                }
+                .font(.footnote.weight(.semibold))
+                .foregroundStyle(Repara.headsUpInk)
+                .padding(.top, 2)
+            }
         }
     }
 
@@ -670,24 +702,103 @@ struct ReviewView: View {
                 showingTypePicker = true
             }
 
-            if let data = model.photo, let image = UIImage(data: data) {
-                RowDivider()
-                DisclosureRow(
-                    systemImage: "photo",
-                    title: Text("1 photo attached"),
-                    subtitle: Text(
-                        "Full resolution · \(data.count.formatted(.byteCount(style: .file)))"),
-                    isExpanded: $photoExpanded
-                ) {
-                    Image(uiImage: image)
-                        .resizable()
-                        .scaledToFit()
-                        .frame(maxHeight: 220)
-                        .clipShape(.rect(cornerRadius: 14))
-                        .padding([.horizontal, .bottom], 16)
+            RowDivider()
+            photoRow
+        }
+    }
+
+    // MARK: The photographs
+
+    /// The evidence, and the one place it can be added to or taken away.
+    ///
+    /// Present even with nothing attached, which is the whole reason it moved
+    /// here: the caution above says a report with no photograph is weaker, and
+    /// this is the row that lets somebody do something about it without going
+    /// back a screen and starting the draft again.
+    ///
+    /// Every change re-makes the prepared report with a new id, so an
+    /// already-armed confirmation is invalidated — see
+    /// `AppModel.reattachPhotos`. It costs no municipal request: the pin has
+    /// not moved, so nothing needs resolving again.
+    private var photoRow: some View {
+        DisclosureRow(
+            systemImage: "photo",
+            title: model.photos.isEmpty
+                ? Text("No photo attached")
+                : Text("\(model.photos.count) photos attached"),
+            subtitle: photoSubtitle,
+            isExpanded: $photoExpanded
+        ) {
+            ScrollView(.horizontal) {
+                HStack(alignment: .top, spacing: 10) {
+                    ForEach(model.photos) { photo in
+                        thumbnail(photo)
+                    }
+                    if model.canAddPhoto { addPhotoTile }
                 }
+                .padding([.horizontal, .bottom], 16)
+            }
+            .scrollIndicators(.hidden)
+        }
+    }
+
+    /// **Why** a photograph matters is the caution card's job, and it is said
+    /// there once. This row says what there is and how much room is left.
+    private var photoSubtitle: Text {
+        guard !model.photos.isEmpty else { return Text("Up to three.") }
+        let bytes = model.photos.reduce(0) { $0 + $1.council.count }
+        return Text(bytes.formatted(.byteCount(style: .file)))
+    }
+
+    private func thumbnail(_ photo: ReportPhoto) -> some View {
+        ZStack(alignment: .topTrailing) {
+            if let image = UIImage(data: photo.council) {
+                Image(uiImage: image)
+                    .resizable()
+                    .scaledToFill()
+                    .frame(width: 150, height: 190)
+                    .clipShape(.rect(cornerRadius: 14, style: .continuous))
+            }
+
+            // Ink on white rather than a tinted glyph: this removes a piece of
+            // evidence, so it should look like a control and not like decoration.
+            Button {
+                withAnimation(.snappy) { model.removePhoto(photo.id) }
+            } label: {
+                Image(systemName: "xmark")
+                    .font(.caption.weight(.bold))
+                    .foregroundStyle(.white)
+                    .frame(width: 28, height: 28)
+                    .background(.black.opacity(0.55), in: .circle)
+            }
+            .buttonStyle(.plain)
+            .padding(7)
+            .accessibilityLabel(Text("Remove this photo"))
+        }
+    }
+
+    private var addPhotoTile: some View {
+        PhotosPicker(
+            selection: $addedItems,
+            maxSelectionCount: Photo.maxPerReport - model.photos.count,
+            matching: .images
+        ) {
+            VStack(spacing: 8) {
+                Image(systemName: "plus")
+                    .font(.system(size: 22, weight: .medium))
+                Text("Add a photo")
+                    .font(.footnote.weight(.semibold))
+            }
+            .foregroundStyle(Repara.ink)
+            .frame(width: 150, height: 190)
+            .background {
+                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                    .strokeBorder(
+                        Color.secondary.opacity(0.35),
+                        style: StrokeStyle(lineWidth: 1.5, dash: [7, 6]))
             }
         }
+        .buttonStyle(.plain)
     }
 
     private var whereSubtitle: Text {

@@ -3,6 +3,20 @@ import Observation
 import ReparaCore
 import UIKit
 
+/// One photograph, in the two forms this app needs it in.
+///
+/// Both are produced once, when the photo is taken or picked. They are lossy
+/// work that should not happen twice, and holding these means nothing after
+/// capture has to keep the full-resolution original alive.
+struct ReportPhoto: Identifiable, Equatable, Sendable {
+    let id = UUID()
+    /// Scaled, and inside `Photo.maxBytes`. This is what the council gets.
+    let council: Data
+    /// Downscaled further, for a model provider. Only the first photograph's
+    /// copy is ever sent — see `AppModel.makeDraft`.
+    let forModel: Data
+}
+
 /// The state behind the Capture → Draft → Resolve → Review → Submit flow.
 ///
 /// The one rule this whole app is built around: **nothing submits without
@@ -75,11 +89,22 @@ final class AppModel {
 
     // MARK: The report under construction
 
-    /// The full-resolution JPEG that goes to the council.
-    var photo: Data?
-    /// The downscaled copy that goes to the model provider. Never sent to the
-    /// portal.
-    private var photoForModel: Data?
+    /// The photographs on this report, in the order they were taken.
+    ///
+    /// Up to `Photo.maxPerReport` of them, which is the portal's own limit. The
+    /// first one is special in exactly one way — it is the one the drafting
+    /// model reads; see `makeDraft`. To the council they are just evidence, and
+    /// all of them are sent.
+    private(set) var photos: [ReportPhoto] = []
+
+    /// Whether there is room for another. The portal's own form stops at three.
+    var canAddPhoto: Bool { photos.count < Photo.maxPerReport }
+
+    /// What the submission carries, numbered so three parts of a multipart body
+    /// cannot arrive under one filename.
+    private var councilPhotos: [Photo] {
+        photos.enumerated().map { Photo(jpeg: $1.council, filename: "foto-\($0 + 1).jpg") }
+    }
 
     var userText = ""
     var type: TipoOcorrencia?
@@ -175,16 +200,93 @@ final class AppModel {
 
     // MARK: Capture → Draft
 
-    func accept(image: UIImage) {
-        photo = PhotoScaler.forCouncil(image)
-        photoForModel = PhotoScaler.forModel(image)
-        pin = location.coordinate
+    func accept(image: UIImage) async {
+        await accept(images: [image])
+    }
+
+    /// Take on as many of these as there is room for.
+    ///
+    /// Anything past `Photo.maxPerReport` is dropped rather than refused: the
+    /// library picker is already limited to the remaining slots, so a longer
+    /// list means something upstream miscounted, and losing the surplus beats
+    /// putting an error in front of somebody who has just chosen three photos.
+    func accept(images: [UIImage]) async {
+        let room = Photo.maxPerReport - photos.count
+        guard room > 0, !images.isEmpty else { return }
+
+        // Encoding three large JPEGs takes long enough to drop frames, and this
+        // is a main-actor type — so the work happens off it and only the bytes
+        // come back.
+        let encoded = await Self.encode(Array(images.prefix(room)))
+        photos.append(contentsOf: encoded)
+
+        // Taking a photo re-reads the GPS fix, which may well have improved
+        // since launch — but **only on the Capture screen**. Adding evidence on
+        // Review must never move a pin somebody has dragged onto a building
+        // frontage, and that is exactly what a photo count of zero looks like
+        // there after removing the last one.
+        if stage == .capture { pin = location.coordinate }
+        reattachPhotos()
+    }
+
+    func removePhoto(_ id: ReportPhoto.ID) {
+        photos.removeAll { $0.id == id }
+        reattachPhotos()
+    }
+
+    /// Throw all of them away and go back to an empty frame.
+    ///
+    /// This is the Capture screen's × — "that shot is no good, let me start
+    /// again" — and it is deliberately all-or-nothing there. Picking one
+    /// photograph out of three is a Review screen job, on the screen where they
+    /// are all visible.
+    func discardPhotos() {
+        photos = []
+        reattachPhotos()
+    }
+
+    /// Scaling and JPEG encoding, off the main actor.
+    ///
+    /// `nonisolated` and `static` on purpose: it touches no state, so nothing
+    /// here can be racing the screen that is waiting for it.
+    private nonisolated static func encode(_ images: [UIImage]) async -> [ReportPhoto] {
+        await Task.detached(priority: .userInitiated) {
+            images.compactMap { image in
+                guard let council = PhotoScaler.forCouncil(image),
+                    let forModel = PhotoScaler.forModel(image)
+                else { return nil }
+                return ReportPhoto(council: council, forModel: forModel)
+            }
+        }.value
+    }
+
+    /// Put the current photographs on the prepared report.
+    ///
+    /// This re-makes `PreparedReport` rather than re-preparing it: the pin has
+    /// not moved, so the address is still resolved and no municipal request is
+    /// spent. The new report gets a **new id**, so a `ReviewConfirmation` bound
+    /// to the previous one no longer matches — changing the evidence changes
+    /// what is being filed, and it is governed by the same rule as a pin drag
+    /// or a text edit.
+    private func reattachPhotos() {
+        guard let current = prepared else { return }
+        do {
+            prepared = try current.with(photos: councilPhotos)
+        } catch {
+            self.error = describe(error)
+        }
     }
 
     /// One model call: photo in, `{tipo_id, descricao}` out — both editable on
     /// the Review screen afterwards.
+    ///
+    /// **The first photograph is the one that goes**, not all of them. It is the
+    /// one somebody framed the problem with; the others are extra angles for a
+    /// council worker, and paying three times the image tokens on the strongest
+    /// model the provider offers would buy very little on top of it. The others
+    /// are never sent to a model provider at all.
     func makeDraft() async {
-        guard let photoForModel else { return }
+        guard let photoForModel = photos.first?.forModel else { return }
         stage = .drafting
         error = nil
         do {
@@ -243,7 +345,7 @@ final class AppModel {
                     at: pin,
                     descricao: body,
                     referencia: self.referencia,
-                    photos: self.photo.map { [Photo(jpeg: $0)] } ?? []
+                    photos: self.councilPhotos
                 )
             } catch is CancellationError {
                 return
@@ -599,8 +701,7 @@ final class AppModel {
         clearCollectionCheck()
         answeredDuplicateIDs = []
         dismissedBookedIDs = []
-        photo = nil
-        photoForModel = nil
+        photos = []
         userText = ""
         type = nil
         descricao = ""

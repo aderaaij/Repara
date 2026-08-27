@@ -223,24 +223,69 @@ public final class PortalClient: @unchecked Sendable {
             break
         }
 
-        let (data, response) = try await session.data(
-            for: request,
-            delegate: followRedirects ? nil : RedirectBlocker()
-        )
+        // Query *values* are deliberately absent: `getGeoAttributes/?x=…&y=…` is
+        // a coordinate, and a log that records where somebody was standing is a
+        // log that should not have been written. The key names say which call it
+        // was, which is all a bug report needs.
+        let keys = query.keys.sorted().joined(separator: ",")
+        let sent = request.httpBody?.count ?? 0
+        Log.portal.debug(
+            """
+            → \(method, privacy: .public) \(path, privacy: .public) \
+            [\(keys, privacy: .public)] \(sent, privacy: .public) B
+            """)
+
+        let started = ContinuousClock.now
+        let data: Data
+        let response: URLResponse
+        do {
+            (data, response) = try await session.data(
+                for: request,
+                delegate: followRedirects ? nil : RedirectBlocker()
+            )
+        } catch {
+            // The one failure that never reaches the checks below. Without this
+            // a timeout and a refused connection are both just "the report did
+            // not go through" with nothing behind it.
+            Log.portal.error(
+                """
+                ✗ \(method, privacy: .public) \(path, privacy: .public) — \
+                \((error as NSError).domain, privacy: .public) \
+                \((error as NSError).code, privacy: .public) \
+                after \(started.duration(to: .now).milliseconds, privacy: .public) ms
+                """)
+            throw error
+        }
+
+        let elapsed = started.duration(to: .now).milliseconds
         guard let http = response as? HTTPURLResponse else {
+            Log.portal.error("✗ \(path, privacy: .public) — non-HTTP response")
             throw PortalError.unexpectedShape("Non-HTTP response", path: path)
         }
+
+        Log.portal.debug(
+            """
+            ← \(http.statusCode, privacy: .public) \(path, privacy: .public) \
+            \(data.count, privacy: .public) B in \(elapsed, privacy: .public) ms
+            """)
 
         if http.statusCode == 401 || http.statusCode == 403 {
             throw PortalError.notAuthenticated(status: http.statusCode, path: path)
         }
         let isRedirect = (300..<400).contains(http.statusCode)
         if !(200..<300).contains(http.statusCode) && !(isRedirect && !followRedirects) {
-            throw PortalError.http(
-                status: http.statusCode,
-                path: path,
-                body: String(data: data.prefix(2000), encoding: .utf8) ?? ""
-            )
+            let body = String(data: data.prefix(2000), encoding: .utf8) ?? ""
+            // The body is the only part of this that can carry anything about a
+            // person, so it is the only part that stays private. The status and
+            // the path are what somebody pastes into a bug report — and in the
+            // one failure that prompted all this logging, the status alone was
+            // a 500 and the reason was buried in the body.
+            Log.portal.error(
+                """
+                ✗ \(http.statusCode, privacy: .public) \(path, privacy: .public) \
+                after \(elapsed, privacy: .public) ms — \(body)
+                """)
+            throw PortalError.http(status: http.statusCode, path: path, body: body)
         }
         return (data, http)
     }
